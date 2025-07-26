@@ -52,6 +52,9 @@ from financial_tools import (
     MUTUAL_FUND_TOOL_DEFINITION
 )
 
+# Import Firebase Memory Manager
+from firebase_config import firebase_memory, get_user_id_from_session, extract_topics, analyze_successful_patterns
+
 # Load environment variables
 load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
@@ -220,6 +223,9 @@ class ChatResponse(BaseModel):
     tool_execution_summary: Dict[str, Any]
     context_updated: bool
     conversation_turn: int
+    # Firebase Memory fields
+    memory_enhanced: bool = False
+    user_memory_active: bool = False
 
 class SessionMetrics(BaseModel):
     total_conversations: int
@@ -1331,18 +1337,117 @@ async def create_session():
 @app.post("/session/{session_id}/chat")
 @performance_monitor
 async def chat_with_agent(session_id: str, request: ChatRequest):
-    """Enhanced chat endpoint with intelligent agent orchestration"""
+    """Enhanced chat endpoint with Firebase memory integration"""
     if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found")
     
-    # No authentication check - always allow chat
-    logger.info(f"💬 Chat request from session {session_id}")
+    logger.info(f"💬 Enhanced chat request from session {session_id}")
     
     try:
-        return await orchestrate_agent_workflow(session_id, request)
+        # 1. Get user ID for memory operations
+        user_id = get_user_id_from_session(session_id)
+        
+        # 2. Save user message to Firebase
+        user_message = {
+            'type': 'user',
+            'content': request.message,
+            'user_id': user_id
+        }
+        await firebase_memory.save_message(session_id, user_message)
+        
+        # 3. Get user memory for context enhancement
+        user_memory = await firebase_memory.get_user_memory(user_id)
+        conversation_history = await firebase_memory.get_conversation_history(session_id, limit=10)
+        
+        # 4. Add memory context to request
+        if user_memory and user_memory.get('working_memory'):
+            memory_context = f"\nUser Context: {user_memory['working_memory']}"
+            request.message = request.message + memory_context
+        
+        # 5. Process with existing agent orchestration
+        response = await orchestrate_agent_workflow(session_id, request)
+        
+        # 6. Save AI response to Firebase
+        ai_message = {
+            'type': 'assistant',
+            'content': response.response,
+            'tools_used': [{'name': tool, 'success': True} for tool in response.tools_used],
+            'workflow_used': response.workflow_used,
+            'user_id': user_id
+        }
+        await firebase_memory.save_message(session_id, ai_message)
+        
+        # 7. Update user memory based on interaction
+        topics = extract_topics(request.message, response.tools_used)
+        patterns = analyze_successful_patterns([{'name': tool, 'success': True} for tool in response.tools_used])
+        
+        memory_update = {
+            'working_memory': {
+                'last_query': request.message,
+                'last_response': response.response,
+                'active_topics': topics,
+                'last_workflow': response.workflow_used
+            },
+            'episodic_memory': {
+                'topics': topics,
+                'successful_tools': response.tools_used
+            },
+            'semantic_memory': {
+                'successful_patterns': patterns
+            }
+        }
+        
+        await firebase_memory.update_user_memory(user_id, memory_update)
+        
+        # 8. Add memory indicators to response
+        response.memory_enhanced = True
+        response.user_memory_active = bool(user_memory)
+        
+        logger.info(f"✅ Enhanced chat completed with memory for session {session_id}")
+        return response
+        
     except Exception as e:
-        logger.error(f"❌ Agent orchestration failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Agent error: {str(e)}")
+        logger.error(f"❌ Enhanced chat error: {e}")
+        # Fallback to regular orchestration
+        try:
+            return await orchestrate_agent_workflow(session_id, request)
+        except Exception as fallback_error:
+            logger.error(f"❌ Fallback orchestration failed: {fallback_error}")
+            raise HTTPException(status_code=500, detail=f"Agent error: {str(e)}")
+
+@app.get("/session/{session_id}/memory")
+async def get_session_memory(session_id: str):
+    """Get memory and conversation history for session"""
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    try:
+        user_id = get_user_id_from_session(session_id)
+        
+        # Get user memory and conversation history
+        user_memory = await firebase_memory.get_user_memory(user_id)
+        conversation_history = await firebase_memory.get_conversation_history(session_id, limit=50)
+        
+        # Calculate memory stats
+        memory_stats = {
+            'total_interactions': user_memory.get('episodic_memory', {}).get('interaction_count', 0) if user_memory else 0,
+            'topics_learned': len(user_memory.get('episodic_memory', {}).get('topics', [])) if user_memory else 0,
+            'successful_patterns': len(user_memory.get('semantic_memory', {}).get('successful_patterns', [])) if user_memory else 0,
+            'conversation_messages': len(conversation_history),
+            'memory_active': bool(user_memory)
+        }
+        
+        return {
+            'session_id': session_id,
+            'user_id': user_id,
+            'user_memory': user_memory,
+            'conversation_history': conversation_history,
+            'memory_stats': memory_stats,
+            'firebase_status': firebase_memory.initialized
+        }
+    except Exception as e:
+        logger.error(f"❌ Get memory error: {e}")
+        raise HTTPException(status_code=500, detail=f"Memory error: {str(e)}")
 
 @app.get("/session/{session_id}/status")
 async def get_enhanced_session_status(session_id: str):
