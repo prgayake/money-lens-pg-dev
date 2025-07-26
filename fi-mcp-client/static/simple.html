@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Money Lens - Financial Advisor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .tagline {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+
+        .features {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            font-size: 1rem;
+        }
+
+        .feature i {
+            font-size: 1.5rem;
+            color: #ffd700;
+        }
+
+        .auth-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 auto;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .auth-btn:active {
+            transform: translateY(0);
+        }
+
+        .progress {
+            display: none;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .progress.show {
+            display: block;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px;
+            margin: 10px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .step i {
+            font-size: 1.2rem;
+            color: #4ade80;
+        }
+
+        .waiting {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+        }
+
+        .waiting.show {
+            display: block;
+        }
+
+        .pulse {
+            width: 20px;
+            height: 20px;
+            background: #4ade80;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .dashboard {
+            display: none;
+        }
+
+        .dashboard.show {
+            display: block;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Authentication Screen -->
+        <div id="authScreen">
+            <div class="logo">💰</div>
+            <h1>Money Lens</h1>
+            <p class="tagline">Your AI-Powered Financial Advisor</p>
+            
+            <div class="features">
+                <div class="feature">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Bank-Grade Security</span>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Complete Portfolio View</span>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-robot"></i>
+                    <span>AI Financial Assistant</span>
+                </div>
+            </div>
+            
+            <button id="connectBtn" class="auth-btn">
+                <i class="fas fa-link"></i>
+                Connect with Fi
+            </button>
+            
+            <!-- Progress Steps -->
+            <div id="progress" class="progress">
+                <div class="step">
+                    <i class="fas fa-cog fa-spin"></i>
+                    <span>Creating secure session...</span>
+                </div>
+            </div>
+            
+            <!-- Waiting Screen -->
+            <div id="waiting" class="waiting">
+                <div class="pulse"></div>
+                <h3>Please complete login in the new window</h3>
+                <p>We're waiting for you to authenticate with Fi. The dashboard will load automatically once complete.</p>
+            </div>
+        </div>
+
+        <!-- Dashboard Screen -->
+        <div id="dashboard" class="dashboard">
+            <h2>🎉 Welcome to Money Lens!</h2>
+            <p>Your financial data is being loaded...</p>
+            <div style="margin-top: 20px;">
+                <button onclick="showChat()" class="auth-btn">
+                    <i class="fas fa-comments"></i>
+                    Start AI Chat
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let sessionId = null;
+        
+        document.getElementById('connectBtn').addEventListener('click', startAuth);
+        
+        async function startAuth() {
+            try {
+                // Hide button and show progress
+                document.getElementById('connectBtn').style.display = 'none';
+                document.getElementById('progress').classList.add('show');
+                
+                // Create session
+                const response = await fetch('/create-session', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    sessionId = data.session_id;
+                    
+                    // Show waiting screen
+                    document.getElementById('progress').classList.remove('show');
+                    document.getElementById('waiting').classList.add('show');
+                    
+                    // Open Fi login
+                    const authUrl = `http://localhost:8080/login?session_id=${sessionId}`;
+                    window.open(authUrl, '_blank');
+                    
+                    // Start polling for authentication
+                    startPolling();
+                } else {
+                    throw new Error(data.message || 'Failed to create session');
+                }
+            } catch (error) {
+                console.error('Auth error:', error);
+                alert('Authentication failed. Please try again.');
+                resetAuth();
+            }
+        }
+        
+        function startPolling() {
+            const interval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/quick-auth-check?session_id=${sessionId}`);
+                    const data = await response.json();
+                    
+                    if (data.authenticated) {
+                        clearInterval(interval);
+                        showDashboard();
+                    }
+                } catch (error) {
+                    console.error('Polling error:', error);
+                }
+            }, 2000);
+            
+            // Stop polling after 5 minutes
+            setTimeout(() => {
+                clearInterval(interval);
+                if (!document.getElementById('dashboard').classList.contains('show')) {
+                    alert('Authentication timeout. Please try again.');
+                    resetAuth();
+                }
+            }, 300000);
+        }
+        
+        function showDashboard() {
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('dashboard').classList.add('show');
+        }
+        
+        function showChat() {
+            alert('Chat functionality coming soon! Session ID: ' + sessionId);
+        }
+        
+        function resetAuth() {
+            document.getElementById('connectBtn').style.display = 'flex';
+            document.getElementById('progress').classList.remove('show');
+            document.getElementById('waiting').classList.remove('show');
+            sessionId = null;
+        }
+    </script>
+</body>
+</html>

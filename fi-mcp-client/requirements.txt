@@ -1,0 +1,13 @@
+google-generativeai
+# The mcp-py dependency is a private repository.
+# It must be cloned manually and installed using `pip install -e .` from its directory.
+# git+https://github.com/mark3labs/mcp-py.git
+python-dotenv
+rich
+fastapi
+uvicorn
+pydantic
+requests
+beautifulsoup4
+yfinance
+

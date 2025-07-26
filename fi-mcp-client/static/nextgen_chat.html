@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next-Gen Financial Assistant - Advanced AI Agent</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+            --surface-color: #f8fafc;
+            --card-color: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            flex: 1;
+        }
+
+        .chat-container {
+            background: var(--card-color);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            height: 70vh;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--surface-color);
+            border-radius: 16px 16px 0 0;
+        }
+
+        .agent-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--success-color);
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.thinking {
+            background: var(--warning-color);
+        }
+
+        .status-indicator.error {
+            background: var(--error-color);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .workflow-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .message.assistant .message-avatar {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .message-content {
+            flex: 1;
+            background: var(--surface-color);
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 80%;
+        }
+
+        .message.user .message-content {
+            background: var(--primary-color);
+            color: white;
+            margin-left: auto;
+        }
+
+        .tool-execution {
+            margin-top: 8px;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+
+        .tool-execution.parallel {
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .tool-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-right: 6px;
+            background: var(--text-secondary);
+            color: white;
+        }
+
+        .tool-badge.financial {
+            background: #10b981;
+        }
+
+        .tool-badge.market {
+            background: #8b5cf6;
+        }
+
+        .tool-badge.web {
+            background: #f59e0b;
+        }
+
+        .tool-badge.portfolio {
+            background: #06b6d4;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+            background: var(--surface-color);
+            border-radius: 0 0 16px 16px;
+        }
+
+        .chat-input {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .input-field {
+            flex: 1;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 1rem;
+            resize: none;
+            max-height: 120px;
+            min-height: 48px;
+            font-family: inherit;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .send-button {
+            padding: 12px 24px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+
+        .send-button:hover:not(:disabled) {
+            background: var(--primary-hover);
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .info-card {
+            background: var(--card-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .info-card h3 {
+            margin-bottom: 15px;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.875rem;
+        }
+
+        .metric-label {
+            color: var(--text-secondary);
+        }
+
+        .metric-value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .feature-list {
+            list-style: none;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .feature-list li::before {
+            content: '⚡';
+            font-size: 1rem;
+        }
+
+        .auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .auth-modal.hidden {
+            display: none;
+        }
+
+        .auth-content {
+            background: var(--card-color);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .auth-content h2 {
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .auth-content p {
+            color: var(--text-secondary);
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .auth-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: var(--primary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        .auth-button:hover {
+            background: var(--primary-hover);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .workflow-examples {
+            margin-top: 15px;
+        }
+
+        .example-query {
+            display: block;
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .example-query:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .sidebar {
+                order: -1;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .chat-container {
+                height: 60vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Next-Gen Financial Assistant</h1>
+            <p>Advanced AI agent with parallel tool execution, intelligent workflow orchestration, and comprehensive financial insights</p>
+        </div>
+
+        <div class="main-content">
+            <div class="chat-container">
+                <div class="chat-header">
+                    <div class="agent-status">
+                        <div class="status-indicator" id="statusIndicator"></div>
+                        <span id="statusText">Ready for intelligent conversations</span>
+                        <span class="workflow-badge" id="workflowBadge">Simple Response</span>
+                    </div>
+                    <div class="metric">
+                        <span>Session:</span>
+                        <span id="sessionId">Initializing...</span>
+                    </div>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message assistant">
+                        <div class="message-avatar">AI</div>
+                        <div class="message-content">
+                            Welcome to the Next-Generation Financial Assistant! 🎯
+                            <br><br>
+                            I'm powered by advanced agent orchestration with:
+                            <ul style="margin: 10px 0; padding-left: 20px;">
+                                <li><strong>Parallel Tool Execution</strong> for faster analysis</li>
+                                <li><strong>Intelligent Workflow Routing</strong> based on your query</li>
+                                <li><strong>Advanced Context Management</strong> for personalized advice</li>
+                                <li><strong>Multi-step Reasoning</strong> for complex financial tasks</li>
+                            </ul>
+                            Try asking about your portfolio, market analysis, or financial planning!
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-container">
+                    <div class="chat-input">
+                        <textarea 
+                            id="messageInput" 
+                            class="input-field" 
+                            placeholder="Ask about your investments, market trends, financial planning..."
+                            rows="1"
+                        ></textarea>
+                        <button id="sendButton" class="send-button">
+                            <span id="sendButtonText">Send</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="info-card">
+                    <h3>🎯 Agent Status</h3>
+                    <div class="metric">
+                        <span class="metric-label">Agent State:</span>
+                        <span class="metric-value" id="agentState">Ready</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Current Workflow:</span>
+                        <span class="metric-value" id="currentWorkflow">None</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Total Tools:</span>
+                        <span class="metric-value" id="totalTools">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Parallel Groups:</span>
+                        <span class="metric-value" id="parallelGroups">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Success Rate:</span>
+                        <span class="metric-value" id="successRate">-</span>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>⚡ Agent Features</h3>
+                    <ul class="feature-list">
+                        <li>Parallel Function Calling</li>
+                        <li>Intelligent Workflow Routing</li>
+                        <li>Advanced Context Management</li>
+                        <li>Multi-step Reasoning</li>
+                        <li>Real-time Financial Data</li>
+                        <li>Market Analysis Tools</li>
+                        <li>Portfolio Optimization</li>
+                        <li>Risk Assessment</li>
+                    </ul>
+                </div>
+
+                <div class="info-card">
+                    <h3>💡 Try These Examples</h3>
+                    <div class="workflow-examples">
+                        <a class="example-query" onclick="sendExampleQuery('Analyze my complete financial portfolio and provide optimization recommendations')">Portfolio Analysis (Orchestrator-Workers)</a>
+                        <a class="example-query" onclick="sendExampleQuery('Compare Apple, Microsoft, and Google stock performance')">Multi-Stock Analysis (Parallelization)</a>
+                        <a class="example-query" onclick="sendExampleQuery('What are the latest market trends affecting tech stocks?')">Market Research (Prompt Chaining)</a>
+                        <a class="example-query" onclick="sendExampleQuery('What is my current net worth?')">Financial Data (Simple Response)</a>
+                        <a class="example-query" onclick="sendExampleQuery('Create a diversified investment strategy based on my risk profile')">Investment Strategy (Orchestrator-Workers)</a>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>📊 Session Metrics</h3>
+                    <div class="metric">
+                        <span class="metric-label">Conversations:</span>
+                        <span class="metric-value" id="conversationCount">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Tool Executions:</span>
+                        <span class="metric-value" id="toolExecutions">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Avg Response Time:</span>
+                        <span class="metric-value" id="avgResponseTime">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Data Sources:</span>
+                        <span class="metric-value" id="dataSources">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Authentication Modal -->
+    <div id="authModal" class="auth-modal hidden">
+        <div class="auth-content">
+            <h2>🔐 Authentication Required</h2>
+            <p>To access your personalized financial data and get the most accurate insights, please authenticate your account.</p>
+            <a id="authButton" href="#" class="auth-button" target="_blank">Authenticate Now</a>
+            <p style="margin-top: 15px; font-size: 0.875rem;">You can continue using general features without authentication.</p>
+        </div>
+    </div>
+
+    <script>
+        class NextGenFinancialAssistant {
+            constructor() {
+                this.sessionId = null;
+                this.isAuthenticated = false;
+                this.conversationCount = 0;
+                this.totalToolExecutions = 0;
+                this.responseTimes = [];
+                this.currentAgentState = 'ready';
+                
+                this.initializeElements();
+                this.setupEventListeners();
+                this.initializeSession();
+            }
+
+            initializeElements() {
+                this.chatMessages = document.getElementById('chatMessages');
+                this.messageInput = document.getElementById('messageInput');
+                this.sendButton = document.getElementById('sendButton');
+                this.sendButtonText = document.getElementById('sendButtonText');
+                this.statusIndicator = document.getElementById('statusIndicator');
+                this.statusText = document.getElementById('statusText');
+                this.workflowBadge = document.getElementById('workflowBadge');
+                this.sessionIdElement = document.getElementById('sessionId');
+                this.authModal = document.getElementById('authModal');
+                this.authButton = document.getElementById('authButton');
+                
+                // Metrics elements
+                this.agentStateElement = document.getElementById('agentState');
+                this.currentWorkflowElement = document.getElementById('currentWorkflow');
+                this.totalToolsElement = document.getElementById('totalTools');
+                this.parallelGroupsElement = document.getElementById('parallelGroups');
+                this.successRateElement = document.getElementById('successRate');
+                this.conversationCountElement = document.getElementById('conversationCount');
+                this.toolExecutionsElement = document.getElementById('toolExecutions');
+                this.avgResponseTimeElement = document.getElementById('avgResponseTime');
+                this.dataSourcesElement = document.getElementById('dataSources');
+            }
+
+            setupEventListeners() {
+                this.sendButton.addEventListener('click', () => this.sendMessage());
+                this.messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+                
+                this.messageInput.addEventListener('input', () => {
+                    this.autoResize(this.messageInput);
+                });
+
+                // Close auth modal when clicking outside
+                this.authModal.addEventListener('click', (e) => {
+                    if (e.target === this.authModal) {
+                        this.authModal.classList.add('hidden');
+                    }
+                });
+            }
+
+            autoResize(textarea) {
+                textarea.style.height = 'auto';
+                textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+            }
+
+            async initializeSession() {
+                try {
+                    this.updateStatus('Initializing next-gen session...', 'thinking');
+                    
+                    const response = await fetch('/session/create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.session_id) {
+                        this.sessionId = data.session_id;
+                        this.sessionIdElement.textContent = data.session_id.substring(0, 8) + '...';
+                        
+                        await this.checkAuthenticationStatus();
+                        this.updateStatus('Ready for intelligent conversations', 'ready');
+                        
+                        console.log('✅ Next-gen session initialized:', data);
+                    } else {
+                        throw new Error('Failed to create session');
+                    }
+                } catch (error) {
+                    console.error('❌ Session initialization failed:', error);
+                    this.updateStatus('Failed to initialize session', 'error');
+                }
+            }
+
+            async checkAuthenticationStatus() {
+                try {
+                    const response = await fetch(`/session/${this.sessionId}/status`);
+                    const data = await response.json();
+                    
+                    this.isAuthenticated = data.authenticated;
+                    this.updateAgentMetrics(data);
+                    
+                    if (!this.isAuthenticated) {
+                        // Get auth URL and show modal
+                        const authResponse = await fetch(`/session/${this.sessionId}/auth-url`);
+                        const authData = await authResponse.json();
+                        
+                        this.authButton.href = authData.auth_url;
+                        this.authModal.classList.remove('hidden');
+                    }
+                    
+                    return this.isAuthenticated;
+                } catch (error) {
+                    console.error('❌ Auth status check failed:', error);
+                    return false;
+                }
+            }
+
+            updateStatus(text, state = 'ready') {
+                this.statusText.textContent = text;
+                this.statusIndicator.className = `status-indicator ${state}`;
+                this.currentAgentState = state;
+            }
+
+            updateAgentMetrics(data) {
+                if (data.agent_state) {
+                    this.agentStateElement.textContent = data.agent_state;
+                }
+                
+                if (data.current_workflow) {
+                    this.currentWorkflowElement.textContent = data.current_workflow;
+                }
+                
+                if (data.metrics) {
+                    this.conversationCountElement.textContent = data.metrics.total_conversations;
+                    this.toolExecutionsElement.textContent = data.metrics.total_tool_calls;
+                    this.dataSourcesElement.textContent = data.metrics.financial_data_sources;
+                    
+                    if (data.metrics.average_response_time > 0) {
+                        this.avgResponseTimeElement.textContent = `${data.metrics.average_response_time.toFixed(2)}s`;
+                    }
+                }
+            }
+
+            async sendMessage() {
+                const message = this.messageInput.value.trim();
+                if (!message || this.currentAgentState === 'thinking') return;
+
+                this.addMessage(message, 'user');
+                this.messageInput.value = '';
+                this.autoResize(this.messageInput);
+
+                this.updateSendButton(true);
+                this.updateStatus('Agent is thinking...', 'thinking');
+
+                const startTime = Date.now();
+
+                try {
+                    const response = await fetch(`/session/${this.sessionId}/chat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            message: message,
+                            enable_parallel_tools: true,
+                            max_tool_calls: 10
+                        })
+                    });
+
+                    if (response.status === 401) {
+                        await this.checkAuthenticationStatus();
+                        this.updateStatus('Authentication required', 'error');
+                        return;
+                    }
+
+                    const data = await response.json();
+                    const responseTime = (Date.now() - startTime) / 1000;
+                    
+                    this.responseTimes.push(responseTime);
+                    this.conversationCount++;
+                    this.totalToolExecutions += data.tools_used.length;
+                    
+                    this.addMessage(data.response, 'assistant', {
+                        workflow: data.workflow_used,
+                        tools: data.tools_used,
+                        executionSummary: data.tool_execution_summary,
+                        duration: data.total_duration
+                    });
+
+                    this.updateWorkflowBadge(data.workflow_used);
+                    this.updateToolMetrics(data);
+                    this.updateSessionMetrics();
+                    this.updateStatus('Ready for next question', 'ready');
+
+                } catch (error) {
+                    console.error('❌ Chat request failed:', error);
+                    this.addMessage('Sorry, I encountered an error. Please try again.', 'assistant');
+                    this.updateStatus('Error occurred', 'error');
+                } finally {
+                    this.updateSendButton(false);
+                }
+            }
+
+            updateSendButton(loading) {
+                this.sendButton.disabled = loading;
+                this.sendButtonText.innerHTML = loading ? 
+                    '<span class="loading"></span>' : 'Send';
+            }
+
+            updateWorkflowBadge(workflow) {
+                this.workflowBadge.textContent = workflow.replace('_', ' ')
+                    .replace(/\b\w/g, l => l.toUpperCase());
+            }
+
+            updateToolMetrics(data) {
+                this.totalToolsElement.textContent = data.tool_execution_summary.total_tools;
+                this.parallelGroupsElement.textContent = data.tool_execution_summary.parallel_groups;
+                
+                const successRate = data.tool_execution_summary.total_tools > 0 
+                    ? (data.tool_execution_summary.successful_tools / data.tool_execution_summary.total_tools * 100).toFixed(1)
+                    : 0;
+                this.successRateElement.textContent = `${successRate}%`;
+            }
+
+            updateSessionMetrics() {
+                this.conversationCountElement.textContent = this.conversationCount;
+                this.toolExecutionsElement.textContent = this.totalToolExecutions;
+                
+                if (this.responseTimes.length > 0) {
+                    const avgTime = this.responseTimes.reduce((a, b) => a + b, 0) / this.responseTimes.length;
+                    this.avgResponseTimeElement.textContent = `${avgTime.toFixed(2)}s`;
+                }
+            }
+
+            addMessage(content, sender, metadata = null) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}`;
+
+                const avatar = document.createElement('div');
+                avatar.className = 'message-avatar';
+                avatar.textContent = sender === 'user' ? 'YOU' : 'AI';
+
+                const messageContent = document.createElement('div');
+                messageContent.className = 'message-content';
+                messageContent.innerHTML = this.formatMessage(content);
+
+                // Add tool execution details for assistant messages
+                if (sender === 'assistant' && metadata && metadata.tools.length > 0) {
+                    const toolSection = document.createElement('div');
+                    toolSection.className = 'tool-execution';
+                    
+                    const parallelGroups = metadata.executionSummary.parallel_groups > 0;
+                    if (parallelGroups) {
+                        toolSection.classList.add('parallel');
+                    }
+                    
+                    toolSection.innerHTML = `
+                        <strong>🔧 Tools Used (${metadata.workflow.replace('_', ' ')}):</strong><br>
+                        ${metadata.tools.map(tool => `
+                            <span class="tool-badge ${this.getToolCategory(tool.category)}">${tool.tool_name}</span>
+                            ${tool.success ? '✅' : '❌'} (${tool.duration.toFixed(2)}s)
+                        `).join(' ')}
+                        ${parallelGroups ? '<br><em>⚡ Executed in parallel for enhanced performance</em>' : ''}
+                    `;
+                    messageContent.appendChild(toolSection);
+                }
+
+                messageDiv.appendChild(avatar);
+                messageDiv.appendChild(messageContent);
+
+                this.chatMessages.appendChild(messageDiv);
+                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+            }
+
+            getToolCategory(category) {
+                const categoryMap = {
+                    'financial_data': 'financial',
+                    'market_analysis': 'market',
+                    'web_search': 'web',
+                    'portfolio_analysis': 'portfolio'
+                };
+                return categoryMap[category] || 'web';
+            }
+
+            formatMessage(content) {
+                // Simple markdown-like formatting
+                return content
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/\n/g, '<br>');
+            }
+
+            sendExampleQuery(query) {
+                this.messageInput.value = query;
+                this.sendMessage();
+            }
+        }
+
+        // Global function for example queries
+        function sendExampleQuery(query) {
+            if (window.assistant) {
+                window.assistant.sendExampleQuery(query);
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            window.assistant = new NextGenFinancialAssistant();
+        });
+    </script>
+</body>
+</html>

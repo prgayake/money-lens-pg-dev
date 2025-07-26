@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Money Lens - Your Smart Financial Advisor</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p id="loadingText">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Authentication Page -->
+    <div id="authPage" class="page active">
+        <div class="auth-container">
+            <div class="auth-header">
+                <div class="logo">
+                    <i class="fas fa-chart-line"></i>
+                    <h1>Money Lens</h1>
+                </div>
+                <p class="tagline">Your AI-Powered Financial Advisor</p>
+            </div>
+            
+            <div class="auth-content">
+                <div class="auth-features">
+                    <div class="feature">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Bank-Grade Security</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>Complete Portfolio View</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-robot"></i>
+                        <span>AI Financial Assistant</span>
+                    </div>
+                </div>
+                
+                <div class="auth-actions">
+                    <button id="authenticateBtn" class="auth-btn primary">
+                        <i class="fas fa-link"></i>
+                        Connect with Fi
+                    </button>
+                    
+                    <!-- Progress Steps -->
+                    <div id="authProgress" class="auth-progress">
+                        <div id="step1" class="progress-step">
+                            <div class="step-icon">
+                                <i class="fas fa-cog fa-spin"></i>
+                            </div>
+                            <span>Creating secure session...</span>
+                        </div>
+                        
+                        <div id="step2" class="progress-step">
+                            <div class="step-icon">
+                                <i class="fas fa-external-link-alt"></i>
+                            </div>
+                            <span>Redirecting to Fi login...</span>
+                        </div>
+                        
+                        <div id="step3" class="progress-step">
+                            <div class="step-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <span>Authentication successful!</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Waiting Message -->
+                    <div id="authWaiting" class="auth-waiting">
+                        <div class="waiting-animation">
+                            <div class="pulse"></div>
+                        </div>
+                        <h3>Please complete login in the new window</h3>
+                        <p>We're waiting for you to authenticate with Fi. The dashboard will load automatically once complete.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Page -->
+    <div id="dashboardPage" class="page">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <i class="fas fa-chart-line"></i>
+                <span>Money Lens</span>
+            </div>
+            <div class="nav-links">
+                <button id="navDashboard" class="nav-btn active">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button id="navChat" class="nav-btn">
+                    <i class="fas fa-comments"></i>
+                    <span>AI Chat</span>
+                </button>
+                <button id="navLogout" class="nav-btn logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </nav>
+
+        <main class="dashboard-main">
+            <div class="dashboard-header">
+                <div class="header-content">
+                    <h1>Financial Dashboard</h1>
+                    <p>Get a complete view of your financial health</p>
+                </div>
+                <button id="refreshBtn" class="refresh-btn">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh
+                </button>
+            </div>
+
+            <div class="dashboard-grid">
+                <!-- Net Worth Card -->
+                <div class="dashboard-card main-card">
+                    <div class="card-header">
+                        <h3>Net Worth</h3>
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="card-content">
+                        <div class="main-amount">
+                            <span id="netWorthAmount">₹0</span>
+                            <div class="amount-change positive">
+                                <span id="netWorthChange">+0%</span>
+                            </div>
+                        </div>
+                        <div class="breakdown">
+                            <div class="breakdown-item">
+                                <span class="label">Assets</span>
+                                <span id="totalAssets" class="value">₹0</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span class="label">Liabilities</span>
+                                <span id="totalLiabilities" class="value">₹0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>Quick Stats</h3>
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <div class="card-content">
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-icon savings">
+                                    <i class="fas fa-piggy-bank"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-label">Savings</span>
+                                    <span id="savingsAmount" class="stat-value">₹0</span>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-icon investments">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-label">Investments</span>
+                                    <span id="investmentsAmount" class="stat-value">₹0</span>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-icon epf">
+                                    <i class="fas fa-building"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-label">EPF</span>
+                                    <span id="epfAmount" class="stat-value">₹0</span>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-icon credit">
+                                    <i class="fas fa-credit-card"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-label">Credit Score</span>
+                                    <span id="creditScore" class="stat-value">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Portfolio Performance Chart -->
+                <div class="dashboard-card chart-card">
+                    <div class="card-header">
+                        <h3>Portfolio Performance</h3>
+                        <i class="fas fa-chart-area"></i>
+                    </div>
+                    <div class="card-content">
+                        <div class="chart-container">
+                            <canvas id="portfolioChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Asset Distribution Chart -->
+                <div class="dashboard-card chart-card">
+                    <div class="card-header">
+                        <h3>Asset Distribution</h3>
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <div class="card-content">
+                        <div class="chart-container">
+                            <canvas id="distributionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Insights -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>AI Insights</h3>
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <div class="card-content">
+                        <div id="insightsList" class="insights-list">
+                            <!-- Insights will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>Recent Activity</h3>
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <div class="card-content">
+                        <div id="recentActivity" class="activity-list">
+                            <!-- Activities will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Chat Page -->
+    <div id="chatPage" class="page">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <i class="fas fa-chart-line"></i>
+                <span>Money Lens</span>
+            </div>
+            <div class="nav-links">
+                <button id="navDashboard2" class="nav-btn">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button id="navChat2" class="nav-btn active">
+                    <i class="fas fa-comments"></i>
+                    <span>AI Chat</span>
+                </button>
+                <button id="navLogout2" class="nav-btn logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </nav>
+
+        <main class="chat-main">
+            <div class="chat-container">
+                <div class="chat-header">
+                    <div class="ai-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="chat-info">
+                        <h2>AI Financial Advisor</h2>
+                        <p>Ask me anything about your finances, investments, or get personalized advice</p>
+                    </div>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <div class="welcome-message">
+                        <div class="message-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="message-content">
+                            <p>👋 Hello! I'm your AI financial advisor. I can help you with:</p>
+                            <ul>
+                                <li>💰 Portfolio analysis and recommendations</li>
+                                <li>📊 Investment strategies based on your profile</li>
+                                <li>🎯 Financial goal planning</li>
+                                <li>📈 Market insights and trends</li>
+                                <li>💡 Personalized financial advice</li>
+                            </ul>
+                            <p>What would you like to know about your finances?</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <button class="quick-btn" data-message="What's my current net worth breakdown?">
+                        <i class="fas fa-chart-pie"></i>
+                        Net Worth Analysis
+                    </button>
+                    <button class="quick-btn" data-message="How is my portfolio performing this month?">
+                        <i class="fas fa-chart-line"></i>
+                        Portfolio Performance
+                    </button>
+                    <button class="quick-btn" data-message="What investment opportunities should I consider?">
+                        <i class="fas fa-lightbulb"></i>
+                        Investment Tips
+                    </button>
+                    <button class="quick-btn" data-message="Help me plan my financial goals">
+                        <i class="fas fa-bullseye"></i>
+                        Goal Planning
+                    </button>
+                </div>
+
+                <div class="chat-input-container">
+                    <div class="chat-input">
+                        <textarea 
+                            id="messageInput" 
+                            placeholder="Ask me about your finances, investments, or get personalized advice..."
+                            rows="1"
+                        ></textarea>
+                        <button id="sendBtn" class="send-btn" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

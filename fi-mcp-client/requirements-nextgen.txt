@@ -1,0 +1,45 @@
+# Next-Gen Financial Assistant API Server Requirements
+# Advanced agent orchestration with parallel tool execution
+
+# Core FastAPI and async dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# Google Generative AI for advanced model capabilities
+google-generativeai==0.3.2
+
+# HTTP and networking
+requests==2.31.0
+httpx==0.25.2
+
+# Data processing and validation
+pydantic==2.5.0
+python-dotenv==1.0.0
+
+# Async and concurrency
+asyncio-mqtt==0.13.0
+
+# Development and debugging
+pytest==7.4.3
+pytest-asyncio==0.21.1
+
+# Enhanced logging and monitoring
+structlog==23.2.0
+
+# Security and authentication
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# Data serialization
+orjson==3.9.10
+
+# WebSocket support for real-time features
+websockets==12.0
+
+# Performance monitoring
+prometheus-client==0.19.0
+
+# Additional utilities
+typing-extensions==4.8.0
+dataclasses-json==0.6.3
