@@ -149,65 +149,74 @@ class FirebaseMemoryManager:
             return []
     
     async def update_user_memory(self, user_id: str, memory_data: dict) -> Optional[dict]:
-        """Update user's AI memory"""
+        """Update user's AI memory with enhanced error logging"""
         if not self.initialized:
+            logger.error(f"[update_user_memory] Not initialized. user_id={user_id}, memory_data={memory_data}")
             return None
-        
+
         try:
             def _update_memory():
-                memory_ref = self.db.collection('user_memory').document(user_id)
-                
-                # Get existing memory
-                existing_memory = memory_ref.get()
-                if existing_memory.exists:
-                    current_memory = existing_memory.to_dict()
-                else:
-                    current_memory = {
-                        'working_memory': {},
-                        'episodic_memory': {'interaction_count': 0, 'topics': [], 'successful_tools': []},
-                        'semantic_memory': {'preferences': {}, 'successful_patterns': [], 'financial_goals': []}
-                    }
-                
-                # Update memory sections
-                if 'working_memory' in memory_data:
-                    current_memory['working_memory'].update(memory_data['working_memory'])
-                
-                if 'episodic_memory' in memory_data:
-                    current_memory['episodic_memory']['interaction_count'] += 1
-                    if 'topics' in memory_data['episodic_memory']:
-                        # Add new topics, avoid duplicates
-                        existing_topics = set(current_memory['episodic_memory'].get('topics', []))
-                        new_topics = set(memory_data['episodic_memory']['topics'])
-                        current_memory['episodic_memory']['topics'] = list(existing_topics.union(new_topics))
-                    
-                    if 'successful_tools' in memory_data['episodic_memory']:
-                        current_memory['episodic_memory']['successful_tools'].extend(
-                            memory_data['episodic_memory']['successful_tools']
-                        )
-                
-                if 'semantic_memory' in memory_data:
-                    if 'preferences' in memory_data['semantic_memory']:
-                        current_memory['semantic_memory']['preferences'].update(
-                            memory_data['semantic_memory']['preferences']
-                        )
-                    if 'successful_patterns' in memory_data['semantic_memory']:
-                        current_memory['semantic_memory']['successful_patterns'].extend(
-                            memory_data['semantic_memory']['successful_patterns']
-                        )
-                    if 'financial_goals' in memory_data['semantic_memory']:
-                        current_memory['semantic_memory']['financial_goals'].extend(
-                            memory_data['semantic_memory']['financial_goals']
-                        )
-                
-                current_memory['last_updated'] = datetime.now()
-                memory_ref.set(current_memory)
-                
-                return current_memory
-            
+                try:
+                    memory_ref = self.db.collection('user_memory').document(user_id)
+                    logger.info(f"[update_user_memory] Updating user_id={user_id} with memory_data={memory_data}")
+
+                    # Get existing memory
+                    existing_memory = memory_ref.get()
+                    if existing_memory.exists:
+                        current_memory = existing_memory.to_dict()
+                    else:
+                        current_memory = {
+                            'working_memory': {},
+                            'episodic_memory': {'interaction_count': 0, 'topics': [], 'successful_tools': []},
+                            'semantic_memory': {'preferences': {}, 'successful_patterns': [], 'financial_goals': []}
+                        }
+
+                    # Update memory sections
+                    if 'working_memory' in memory_data:
+                        logger.info(f"[update_user_memory] Updating working_memory: {memory_data['working_memory']}")
+                        current_memory['working_memory'].update(memory_data['working_memory'])
+
+                    if 'episodic_memory' in memory_data:
+                        logger.info(f"[update_user_memory] Updating episodic_memory: {memory_data['episodic_memory']}")
+                        current_memory['episodic_memory']['interaction_count'] += 1
+                        if 'topics' in memory_data['episodic_memory']:
+                            # Add new topics, avoid duplicates
+                            existing_topics = set(current_memory['episodic_memory'].get('topics', []))
+                            new_topics = set(memory_data['episodic_memory']['topics'])
+                            current_memory['episodic_memory']['topics'] = list(existing_topics.union(new_topics))
+
+                        if 'successful_tools' in memory_data['episodic_memory']:
+                            current_memory['episodic_memory']['successful_tools'].extend(
+                                memory_data['episodic_memory']['successful_tools']
+                            )
+
+                    if 'semantic_memory' in memory_data:
+                        logger.info(f"[update_user_memory] Updating semantic_memory: {memory_data['semantic_memory']}")
+                        if 'preferences' in memory_data['semantic_memory']:
+                            current_memory['semantic_memory']['preferences'].update(
+                                memory_data['semantic_memory']['preferences']
+                            )
+                        if 'successful_patterns' in memory_data['semantic_memory']:
+                            current_memory['semantic_memory']['successful_patterns'].extend(
+                                memory_data['semantic_memory']['successful_patterns']
+                            )
+                        if 'financial_goals' in memory_data['semantic_memory']:
+                            current_memory['semantic_memory']['financial_goals'].extend(
+                                memory_data['semantic_memory']['financial_goals']
+                            )
+
+                    current_memory['last_updated'] = datetime.now()
+                    memory_ref.set(current_memory)
+                    logger.info(f"[update_user_memory] Successfully updated user_id={user_id}")
+                    return current_memory
+                except Exception as inner_e:
+                    logger.error(f"[update_user_memory] Firestore error for user_id={user_id}: {inner_e}")
+                    raise
+
             loop = asyncio.get_event_loop()
             return await loop.run_in_executor(self.executor, _update_memory)
         except Exception as e:
-            logger.error(f"Failed to update user memory: {e}")
+            logger.error(f"[update_user_memory] Failed to update user memory for user_id={user_id}: {e}. memory_data={memory_data}")
             return None
     
     async def get_user_memory(self, user_id: str) -> Optional[dict]:

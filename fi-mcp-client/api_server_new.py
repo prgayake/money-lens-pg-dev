@@ -1371,8 +1371,11 @@ async def chat_with_agent(session_id: str, request: ChatRequest):
         ai_message = {
             'type': 'assistant',
             'content': response.response,
-            'tools_used': [{'name': tool, 'success': True} for tool in response.tools_used],
-            'workflow_used': response.workflow_used,
+            'tools_used': [
+                {**tool, 'category': tool.category.value if hasattr(tool, 'category') and isinstance(tool.category, Enum) else tool.get('category', None)}
+                if isinstance(tool, dict) else tool for tool in response.tools_used
+            ],
+            'workflow_used': response.workflow_used.value if response.workflow_used and hasattr(response.workflow_used, 'value') else str(response.workflow_used) if response.workflow_used else None,
             'user_id': user_id
         }
         await firebase_memory.save_message(session_id, ai_message)
@@ -1386,11 +1389,14 @@ async def chat_with_agent(session_id: str, request: ChatRequest):
                 'last_query': request.message,
                 'last_response': response.response,
                 'active_topics': topics,
-                'last_workflow': response.workflow_used
+                'last_workflow': response.workflow_used.value if response.workflow_used and hasattr(response.workflow_used, 'value') else str(response.workflow_used) if response.workflow_used else None
             },
             'episodic_memory': {
                 'topics': topics,
-                'successful_tools': response.tools_used
+                'successful_tools': [
+                    {**tool, 'category': tool.category.value if hasattr(tool, 'category') and isinstance(tool.category, Enum) else tool.get('category', None)}
+                    if isinstance(tool, dict) else tool for tool in response.tools_used
+                ]
             },
             'semantic_memory': {
                 'successful_patterns': patterns
