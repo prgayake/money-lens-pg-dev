@@ -33,7 +33,7 @@ load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 # Configuration
-MCP_SERVER_BASE_URL = "https://fi-mcp-service-709038576402.us-central1.run.app/mcp/stream"
+MCP_SERVER_BASE_URL = "https://https://mcp.fi.money:8080/mcp/stream"
 
 # Tool definitions from Fi MCP server
 FI_TOOL_DEFINITIONS = [
@@ -62,7 +62,7 @@ sessions: Dict[str, Dict[str, Any]] = {}
 async def lifespan(app: FastAPI):
     # Startup
     print("💰 Financial Assistant API started successfully! 🚀")
-    print("📍 API available at: https://fi-mcp-service-709038576402.us-central1.run.app")
+    print("📍 API available at: https://https://mcp.fi.money:8080")
     print("📋 Available Endpoints:")
     print("  • POST /session/create - Create new session")
     print("  • GET  /session/{session_id}/status - Check authentication status")
@@ -227,7 +227,7 @@ def initialize_mcp_session(session_id: str) -> Optional[str]:
     try:
         # Create session with proper cookies
         http_session = requests.Session()
-        http_session.cookies.set("client_session_id", session_id, domain="https://fi-mcp-service-709038576402.us-central1.run.app")
+        http_session.cookies.set("client_session_id", session_id, domain="https://https://mcp.fi.money:8080")
         
         headers = {"Content-Type": "application/json", "Mcp-Session-Id": session_id}
         
@@ -550,7 +550,7 @@ async def get_auth_url(session_id: str):
     mcp_session_id = session_data.get("mcp_session_id")
     
     # Use the MCP session ID for authentication URL
-    auth_url = f"https://fi-mcp-service-709038576402.us-central1.run.app/mockWebPage?sessionId={mcp_session_id}"
+    auth_url = f"https://https://mcp.fi.money:8080/mockWebPage?sessionId={mcp_session_id}"
     
     return AuthUrlResponse(
         session_id=session_id,
