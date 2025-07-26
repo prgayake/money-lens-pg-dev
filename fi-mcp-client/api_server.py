@@ -5,6 +5,14 @@ import textwrap
 import requests
 import uuid
 import secrets
+import os
+import json
+import asyncio
+import secrets
+import textwrap
+import uuid
+import requests
+import google.generativeai as genai
 from typing import Dict, Any, Optional
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
@@ -52,6 +60,10 @@ FI_TOOL_DEFINITIONS = [
     {
         "name": "fetch_mf_transactions",
         "description": "Retrieve mutual funds transaction history for portfolio analysis.",
+    },
+    {
+        "name": "fetch_bank_transactions",
+        "description": "Retrieve bank transaction history for spending analysis and financial insights.",
     },
 ]
 
@@ -262,6 +274,30 @@ def initialize_mcp_session(session_id: str) -> Optional[str]:
         print(f"Failed to initialize MCP session: {e}")
         return None
 
+def load_test_data(tool_name: str, session_id: str = "1010101010") -> dict:
+    """Load test data from fi-mcp-dev test directory"""
+    try:
+        # Use a default session ID that exists in test data
+        test_data_path = f"/Users/pradyumna/Downloads/money-lens-pg-dev/fi-mcp-dev/test_data_dir/{session_id}/{tool_name}.json"
+        
+        if os.path.exists(test_data_path):
+            with open(test_data_path, 'r') as f:
+                data = json.load(f)
+                print(f"✅ Loaded test data for {tool_name} from {test_data_path}")
+                # Format as MCP-style response
+                return {
+                    "content": [{
+                        "type": "text",
+                        "text": json.dumps(data, indent=2)
+                    }]
+                }
+        else:
+            print(f"❌ Test data not found at {test_data_path}")
+            return {"error": f"Test data not found for {tool_name}"}
+    except Exception as e:
+        print(f"❌ Error loading test data for {tool_name}: {e}")
+        return {"error": f"Failed to load test data: {str(e)}"}
+
 def execute_mcp_tool(session_id: str, tool_name: str, skip_auth_retry: bool = False) -> dict:
     """Execute a tool call on the MCP server"""
     if session_id not in sessions:
@@ -321,9 +357,15 @@ def execute_mcp_tool(session_id: str, tool_name: str, skip_auth_retry: bool = Fa
             return {"error": "No valid response received from MCP server"}
 
     except requests.exceptions.RequestException as e:
-        return {"error": str(e)}
+        print(f"❌ MCP server connection failed: {e}")
+        # Fallback to test data when MCP server is not available
+        print(f"🔄 Falling back to test data for {tool_name}")
+        return load_test_data(tool_name, session_id)
     except json.JSONDecodeError:
-        return {"error": "Invalid JSON response from server"}
+        print(f"❌ Invalid JSON response from MCP server for {tool_name}")
+        # Fallback to test data
+        print(f"🔄 Falling back to test data for {tool_name}")
+        return load_test_data(tool_name, session_id)
 
 async def auto_load_financial_data(session_id: str):
     """Automatically load user's financial data in background after authentication"""
@@ -1503,6 +1545,183 @@ async def api_health():
             "prefetch": "/session/{session_id}/prefetch",
             "chat_history": "/api/session/{session_id}/chat-history"
         }
+    }
+
+@app.get("/api/dashboard-data")
+async def get_dashboard_data(session_id: str):
+    """Get structured dashboard data including bank transactions for frontend"""
+    if session_id not in sessions:
+        return {"success": False, "error": "Session not found"}
+    
+    try:
+        # Try to get bank transactions
+        bank_transactions_result = await asyncio.get_event_loop().run_in_executor(
+            executor, execute_mcp_tool, session_id, "fetch_bank_transactions"
+        )
+        
+        # Parse the bank transactions data
+        recent_transactions = []
+        if bank_transactions_result and "content" in bank_transactions_result:
+            content = bank_transactions_result["content"][0]["text"]
+            bank_data = json.loads(content)
+            
+            # Extract transactions from the first bank
+            if bank_data.get("bankTransactions") and len(bank_data["bankTransactions"]) > 0:
+                bank_txns = bank_data["bankTransactions"][0]["txns"]
+                
+                # Convert to frontend format and get recent transactions
+                for txn in bank_txns[:10]:  # Get last 10 transactions
+                    amount = float(txn[0])
+                    description = txn[1]
+                    date = txn[2]
+                    txn_type = int(txn[3])  # 1=CREDIT, 2=DEBIT
+                    mode = txn[4]
+                    balance = float(txn[5])
+                    
+                    # Categorize transaction
+                    category = categorize_transaction(description)
+                    
+                    recent_transactions.append({
+                        "id": f"txn_{hash(f'{date}_{description}_{amount}')}",
+                        "amount": amount,
+                        "description": description,
+                        "date": date,
+                        "type": "credit" if txn_type == 1 else "debit",
+                        "category": category,
+                        "mode": mode,
+                        "balance": balance
+                    })
+        
+        # Calculate spending by category
+        spending_by_category = {}
+        total_spending = 0
+        total_income = 0
+        
+        for txn in recent_transactions:
+            if txn["type"] == "debit":
+                category = txn["category"]
+                amount = txn["amount"]
+                spending_by_category[category] = spending_by_category.get(category, 0) + amount
+                total_spending += amount
+            elif txn["type"] == "credit":
+                total_income += txn["amount"]
+        
+        # Generate user behavior analysis
+        behavior_analysis = generate_behavior_analysis(recent_transactions, spending_by_category)
+        
+        return {
+            "success": True,
+            "status": "success",
+            "data": {
+                "recent_transactions": recent_transactions,
+                "spending_by_category": spending_by_category,
+                "total_spending": total_spending,
+                "total_income": total_income,
+                "behavior_analysis": behavior_analysis,
+                "last_updated": asyncio.get_event_loop().time()
+            }
+        }
+        
+    except Exception as e:
+        print(f"❌ Dashboard data error: {e}")
+        return {"success": False, "error": f"Failed to get dashboard data: {str(e)}"}
+
+def categorize_transaction(description: str) -> str:
+    """Categorize transaction based on description"""
+    description_lower = description.lower()
+    
+    # Food & Dining
+    if any(word in description_lower for word in ['grocer', 'restaurant', 'food', 'dining', 'cafe', 'swiggy', 'zomato']):
+        return "Food & Dining"
+    
+    # Transportation
+    if any(word in description_lower for word in ['fuel', 'petrol', 'diesel', 'uber', 'ola', 'cab', 'taxi', 'transport']):
+        return "Transportation"
+    
+    # Bills & Utilities
+    if any(word in description_lower for word in ['electricity', 'water', 'gas', 'mobile', 'broadband', 'internet', 'bill']):
+        return "Bills & Utilities"
+    
+    # Credit Card
+    if any(word in description_lower for word in ['credit card', 'card payment', 'card-bill']):
+        return "Credit Card"
+    
+    # Investment & Finance
+    if any(word in description_lower for word in ['sip', 'mutual fund', 'fd', 'rd', 'zerodha', 'etf', 'investment', 'installment']):
+        return "Investment"
+    
+    # Rent
+    if any(word in description_lower for word in ['rent']):
+        return "Housing & Rent"
+    
+    # Salary
+    if any(word in description_lower for word in ['salary', 'payroll']):
+        return "Income"
+    
+    # Interest
+    if any(word in description_lower for word in ['interest']):
+        return "Finance"
+    
+    # Default
+    return "Others"
+
+def generate_behavior_analysis(transactions: list, spending_by_category: dict) -> dict:
+    """Generate AI-powered behavior analysis"""
+    if not transactions:
+        return {
+            "insights": ["No transaction data available for analysis"],
+            "score": "N/A",
+            "recommendations": ["Connect your bank account to get personalized insights"]
+        }
+    
+    insights = []
+    recommendations = []
+    
+    # Analyze spending patterns
+    if spending_by_category:
+        top_category = max(spending_by_category.items(), key=lambda x: x[1])
+        insights.append(f"Highest spending category: {top_category[0]} (₹{top_category[1]:,.0f})")
+        
+        if "Food & Dining" in spending_by_category:
+            food_spending = spending_by_category["Food & Dining"]
+            if food_spending > 5000:
+                recommendations.append("Consider meal planning to optimize food expenses")
+        
+        if "Investment" in spending_by_category:
+            insights.append("Good investment discipline with regular SIPs")
+        else:
+            recommendations.append("Consider starting systematic investments for long-term wealth")
+    
+    # Analyze transaction frequency
+    debit_count = len([t for t in transactions if t["type"] == "debit"])
+    credit_count = len([t for t in transactions if t["type"] == "credit"])
+    
+    if debit_count > credit_count * 3:
+        insights.append("High transaction frequency - mostly expenses")
+        recommendations.append("Track daily expenses to identify optimization opportunities")
+    
+    # Calculate a simple spending score
+    total_spending = sum(spending_by_category.values())
+    total_income = sum([t["amount"] for t in transactions if t["type"] == "credit"])
+    
+    if total_income > 0:
+        spending_ratio = total_spending / total_income
+        if spending_ratio < 0.7:
+            score = "Excellent"
+            insights.append("Great savings discipline!")
+        elif spending_ratio < 0.85:
+            score = "Good"
+            insights.append("Healthy spending-to-income ratio")
+        else:
+            score = "Needs Improvement"
+            recommendations.append("Consider reducing discretionary expenses")
+    else:
+        score = "N/A"
+    
+    return {
+        "insights": insights,
+        "score": score,
+        "recommendations": recommendations
     }
 
 @app.post("/ask-fi")

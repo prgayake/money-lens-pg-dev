@@ -10,6 +10,7 @@ import {
   Button,
   Tabs,
   Tab,
+  CircularProgress,
 } from "@mui/material";
 import {
   Dashboard as DashboardIcon,
@@ -76,21 +77,8 @@ const theme = createTheme({
 function App() {
   const [currentTab, setCurrentTab] = useState(0);
   const [sessionId, setSessionId] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authUrl, setAuthUrl] = useState("");
-
-  const getAuthUrl = useCallback(async (sessionId) => {
-    try {
-      const response = await axios.get(
-        `${API_BASE_URL}/session/${sessionId}/auth-url`
-      );
-      const { auth_url } = response.data;
-      setAuthUrl(auth_url);
-    } catch (error) {
-      console.error("Failed to get auth URL:", error);
-    }
-  }, []);
 
   const createNewSession = useCallback(async () => {
     try {
@@ -100,40 +88,11 @@ function App() {
       setSessionId(session_id);
       localStorage.setItem("fi_session_id", session_id);
 
-      // Get authentication URL
-      await getAuthUrl(session_id);
-      setShowAuthModal(true);
-
       console.log("✅ New session created:", session_id);
     } catch (error) {
       console.error("Failed to create session:", error);
     }
-  }, [getAuthUrl]);
-
-  const checkSessionStatus = useCallback(
-    async (sessionId) => {
-      try {
-        const response = await axios.get(
-          `${API_BASE_URL}/session/${sessionId}/status`
-        );
-        const { authenticated } = response.data;
-
-        setSessionId(sessionId);
-        setIsAuthenticated(authenticated);
-
-        if (!authenticated) {
-          await getAuthUrl(sessionId);
-          setShowAuthModal(true);
-        }
-
-        console.log("✅ Session status checked:", { sessionId, authenticated });
-      } catch (error) {
-        console.error("Failed to check session status:", error);
-        await createNewSession();
-      }
-    },
-    [getAuthUrl, createNewSession]
-  );
+  }, []);
 
   useEffect(() => {
     const initializeSession = async () => {
@@ -141,24 +100,24 @@ function App() {
       const savedSessionId = localStorage.getItem("fi_session_id");
 
       if (savedSessionId) {
-        await checkSessionStatus(savedSessionId);
+        setSessionId(savedSessionId);
+        console.log("✅ Using existing session:", savedSessionId);
       } else {
         await createNewSession();
       }
     };
 
     initializeSession();
-  }, [checkSessionStatus, createNewSession]);
+  }, [createNewSession]);
 
-  const handleAuthSuccess = () => {
-    setIsAuthenticated(true);
-    setShowAuthModal(false);
+  const handleConnectToFiMoney = (fiMoneyUrl) => {
+    setAuthUrl(fiMoneyUrl);
+    setShowAuthModal(true);
   };
 
   const handleLogout = async () => {
     localStorage.removeItem("fi_session_id");
     setSessionId(null);
-    setIsAuthenticated(false);
     setCurrentTab(0);
     await createNewSession();
   };
@@ -178,7 +137,7 @@ function App() {
               Financial AI Assistant
             </Typography>
 
-            {isAuthenticated && (
+            {sessionId && (
               <>
                 <Tabs
                   value={currentTab}
@@ -196,7 +155,7 @@ function App() {
                   startIcon={<LogoutIcon />}
                   onClick={handleLogout}
                 >
-                  Logout
+                  New Session
                 </Button>
               </>
             )}
@@ -205,44 +164,13 @@ function App() {
 
         {/* Main Content */}
         <Box sx={{ flex: 1, overflow: "hidden" }}>
-          {!isAuthenticated ? (
-            <Box
-              sx={{
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexDirection: "column",
-                gap: 3,
-              }}
-            >
-              <Typography variant="h4" gutterBottom>
-                Welcome to Financial AI Assistant
-              </Typography>
-              <Typography
-                variant="body1"
-                color="text.secondary"
-                textAlign="center"
-              >
-                Please authenticate to access your financial data and start
-                chatting with the AI assistant.
-              </Typography>
-              <Button
-                variant="contained"
-                size="large"
-                onClick={() => setShowAuthModal(true)}
-              >
-                Get Started
-              </Button>
-            </Box>
-          ) : (
+          {sessionId ? (
             <>
               {/* Chat Tab */}
               {currentTab === 0 && (
                 <ChatContainer
                   sessionId={sessionId}
-                  isAuthenticated={isAuthenticated}
-                  onAuthRequired={() => setShowAuthModal(true)}
+                  onFiMoneyAuthRequired={handleConnectToFiMoney}
                 />
               )}
 
@@ -255,16 +183,32 @@ function App() {
                 />
               )}
             </>
+          ) : (
+            <Box
+              sx={{
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexDirection: "column",
+                gap: 3,
+              }}
+            >
+              <CircularProgress />
+              <Typography variant="body1" color="text.secondary">
+                Setting up your session...
+              </Typography>
+            </Box>
           )}
         </Box>
 
-        {/* Authentication Modal */}
+        {/* Fi Money Authentication Modal */}
         <AuthenticationModal
           open={showAuthModal}
           onClose={() => setShowAuthModal(false)}
           sessionId={sessionId}
           authUrl={authUrl}
-          onAuthSuccess={handleAuthSuccess}
+          onAuthSuccess={() => setShowAuthModal(false)}
           apiBaseUrl={API_BASE_URL}
         />
       </Box>

@@ -21,19 +21,13 @@ import {
   Alert,
   CircularProgress,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Card,
   CardContent,
-  Divider,
 } from "@mui/material";
 import {
   Send as SendIcon,
   Person as PersonIcon,
   SmartToy as BotIcon,
-  Refresh as RefreshIcon,
   QrCode as QrCodeIcon,
   Assessment as AssessmentIcon,
 } from "@mui/icons-material";
@@ -45,22 +39,16 @@ const API_BASE_URL =
 
 const ChatContainer = ({
   sessionId: propSessionId,
-  isAuthenticated: propIsAuthenticated,
-  onAuthRequired,
+  onFiMoneyAuthRequired,
 }) => {
   // State management - use props if provided
   const [sessionId, setSessionId] = useState(propSessionId);
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    propIsAuthenticated || false
-  );
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [authUrl, setAuthUrl] = useState("");
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const [error, setError] = useState(null);
-  // Only show loading if we don't have props - if we have sessionId from props, don't load
   const [sessionLoading, setSessionLoading] = useState(!propSessionId);
+  const [isConnectingToFi, setIsConnectingToFi] = useState(false);
 
   // Next-gen API state
   const [currentWorkflow, setCurrentWorkflow] = useState("simple_response");
@@ -235,41 +223,57 @@ const ChatContainer = ({
       setSessionId(propSessionId);
       setSessionLoading(false); // Don't show loading if we have a session from props
     }
-    if (propIsAuthenticated !== undefined) {
-      setIsAuthenticated(propIsAuthenticated);
-    }
-  }, [propSessionId, propIsAuthenticated]);
+  }, [propSessionId]);
 
-  // Focus input field when authenticated
+  // Focus input field when session is ready
   useEffect(() => {
-    if (isAuthenticated && inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
-    }
-  }, [isAuthenticated]);
-
-  // Auto-focus input on mount if authenticated
-  useEffect(() => {
-    if (isAuthenticated && inputRef.current && !sessionLoading) {
+    if (sessionId && inputRef.current && !sessionLoading) {
       setTimeout(() => {
         inputRef.current?.focus();
       }, 500);
     }
-  }, [sessionLoading, isAuthenticated]);
+  }, [sessionLoading, sessionId]);
 
-  // Get authentication URL
-  const getAuthUrl = useCallback(async (sessionId) => {
+  // Connect to Fi Money by sending a financial query
+  const connectToFiMoney = useCallback(async () => {
+    if (!sessionId) return;
+    
+    setIsConnectingToFi(true);
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/session/${sessionId}/auth-url`
+      const response = await axios.post(
+        `${API_BASE_URL}/session/${sessionId}/chat`,
+        {
+          message: "I want to check my net worth. Can you help me access my financial data?",
+          use_parallel_tools: false
+        },
+        { timeout: 30000 }
       );
-      const { auth_url } = response.data;
-      setAuthUrl(auth_url);
+
+      if (response.data) {
+        const responseText = response.data.response || "";
+        
+        // Look for Fi Money auth URL in the response
+        const urlMatch = responseText.match(/https:\/\/fi\.money\/[^\s)]+/);
+        if (urlMatch && onFiMoneyAuthRequired) {
+          onFiMoneyAuthRequired(urlMatch[0]);
+        }
+        
+        // Add the message to chat history
+        const botMessage = {
+          id: Date.now(),
+          type: "bot",
+          content: responseText,
+          timestamp: new Date().toISOString(),
+        };
+        setMessages(prev => [...prev, botMessage]);
+      }
     } catch (error) {
-      console.error("Failed to get auth URL:", error);
+      console.error("Failed to connect to Fi Money:", error);
+      setError("Failed to connect to Fi Money. Please try again.");
+    } finally {
+      setIsConnectingToFi(false);
     }
-  }, []);
+  }, [sessionId, onFiMoneyAuthRequired]);
 
   // Create new session
   const createNewSession = useCallback(async () => {
@@ -280,42 +284,12 @@ const ChatContainer = ({
       setSessionId(session_id);
       localStorage.setItem("fi_session_id", session_id);
 
-      // Get authentication URL
-      await getAuthUrl(session_id);
-
       console.log("✅ New session created:", session_id);
     } catch (error) {
       console.error("Failed to create session:", error);
       setError("Failed to create session. Please refresh the page.");
     }
-  }, [getAuthUrl]);
-
-  // Check session status
-  const checkSessionStatus = useCallback(
-    async (sessionId) => {
-      try {
-        const response = await axios.get(
-          `${API_BASE_URL}/session/${sessionId}/status`
-        );
-        const { authenticated } = response.data;
-
-        setSessionId(sessionId);
-        setIsAuthenticated(authenticated);
-
-        if (!authenticated) {
-          await getAuthUrl(sessionId);
-          setShowAuthModal(true);
-        }
-
-        console.log("✅ Session status checked:", { sessionId, authenticated });
-      } catch (error) {
-        console.error("Failed to check session status:", error);
-        // If session check fails, create new session
-        await createNewSession();
-      }
-    },
-    [getAuthUrl, createNewSession]
-  );
+  }, []);
 
   // Check for existing session or create new one
   const initializeSession = useCallback(async () => {
@@ -325,13 +299,14 @@ const ChatContainer = ({
     const savedSessionId = localStorage.getItem("fi_session_id");
 
     if (savedSessionId) {
-      await checkSessionStatus(savedSessionId);
+      setSessionId(savedSessionId);
+      console.log("✅ Using existing session:", savedSessionId);
     } else {
       await createNewSession();
     }
 
     setSessionLoading(false);
-  }, [checkSessionStatus, createNewSession]);
+  }, [createNewSession]);
 
   // Initialize session on component mount only if no session provided
   useEffect(() => {
@@ -350,7 +325,7 @@ const ChatContainer = ({
       id: Date.now(),
       type: "user",
       content: inputMessage,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -382,7 +357,7 @@ const ChatContainer = ({
         tool_execution_summary: response.data.tool_execution_summary,
         context_updated: response.data.context_updated,
         conversation_turn: response.data.conversation_turn,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, aiMessage]);
 
@@ -408,13 +383,7 @@ const ChatContainer = ({
 
       // Handle specific HTTP errors
       if (error.response?.status === 401) {
-        setIsAuthenticated(false);
-        if (onAuthRequired) {
-          onAuthRequired();
-        } else {
-          setShowAuthModal(true);
-        }
-        setError("Authentication required. Please authenticate to continue.");
+        setError("Authentication required. Please use the 'Connect to Fi Money' button to authenticate.");
       } else if (error.response?.status === 404) {
         setError("Session not found. Creating new session...");
         await createNewSession();
@@ -427,14 +396,6 @@ const ChatContainer = ({
       if (agentState !== "error") {
         setAgentState("ready");
       }
-    }
-  };
-
-  // Handle authentication refresh
-  const handleAuthRefresh = async () => {
-    if (sessionId) {
-      await checkSessionStatus(sessionId);
-      setShowAuthModal(false);
     }
   };
 
@@ -577,7 +538,7 @@ const ChatContainer = ({
               variant="caption"
               sx={{ display: "block", mt: 1, opacity: 0.7 }}
             >
-              {message.timestamp.toLocaleTimeString()}
+              {new Date(message.timestamp).toLocaleTimeString()}
               {message.context_updated && (
                 <Typography
                   component="span"
@@ -629,14 +590,23 @@ const ChatContainer = ({
               💰 Financial AI Assistant
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.9 }}>
-              {isAuthenticated
-                ? "✅ Authenticated and ready"
-                : "⚠️ Authentication required"}
+              ✨ Chat with AI • Connect to Fi Money for financial data
             </Typography>
           </Box>
-          <IconButton color="inherit" onClick={handleAuthRefresh}>
-            <RefreshIcon />
-          </IconButton>
+          <Button
+            variant="contained"
+            color="secondary"
+            startIcon={<QrCodeIcon />}
+            onClick={connectToFiMoney}
+            disabled={isConnectingToFi || !sessionId}
+            sx={{ 
+              bgcolor: "rgba(255,255,255,0.2)", 
+              color: "white",
+              "&:hover": { bgcolor: "rgba(255,255,255,0.3)" }
+            }}
+          >
+            {isConnectingToFi ? "Connecting..." : "Connect to Fi Money"}
+          </Button>
         </Box>
       </Paper>
 
@@ -730,9 +700,7 @@ const ChatContainer = ({
             </Box>
 
             <Typography variant="body2" color="text.secondary">
-              {isAuthenticated
-                ? "✅ You're authenticated! Try asking: 'Analyze my portfolio performance with a detailed markdown report'"
-                : "⚠️ Please authenticate first to access your financial data."}
+              ✨ Try asking: "Show me my net worth" or "Analyze my portfolio performance with a detailed markdown report"
             </Typography>
           </CardContent>
         </Card>
@@ -790,27 +758,21 @@ const ChatContainer = ({
             minRows={1}
             variant="outlined"
             placeholder={
-              !isAuthenticated
-                ? "🔒 Please authenticate first to start chatting"
-                : isTyping
+              isTyping
                 ? "🤖 AI is thinking... please wait"
                 : "💬 Ask me anything about your finances..."
             }
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            disabled={!isAuthenticated || isTyping}
+            disabled={isTyping}
             sx={{
               "& .MuiOutlinedInput-root": {
-                backgroundColor: isAuthenticated
-                  ? "background.default"
-                  : "action.disabledBackground",
+                backgroundColor: "background.default",
                 transition: "all 0.3s ease",
                 "&:hover": {
-                  backgroundColor: isAuthenticated
-                    ? "action.hover"
-                    : "action.disabledBackground",
-                  transform: isAuthenticated ? "translateY(-1px)" : "none",
+                  backgroundColor: "action.hover",
+                  transform: "translateY(-1px)",
                 },
                 "&.Mui-focused": {
                   backgroundColor: "background.paper",
@@ -829,15 +791,12 @@ const ChatContainer = ({
               },
               "& .MuiInputBase-input::placeholder": {
                 fontSize: "0.95rem",
-                opacity: isAuthenticated ? 0.7 : 0.5,
-                fontStyle: isAuthenticated ? "normal" : "italic",
+                opacity: 0.7,
                 transition: "opacity 0.3s ease",
               },
               "& .MuiOutlinedInput-notchedOutline": {
-                borderWidth: isAuthenticated ? 1 : 1,
-                borderColor: isAuthenticated
-                  ? "primary.light"
-                  : "action.disabled",
+                borderWidth: 1,
+                borderColor: "primary.light",
                 transition: "border-color 0.3s ease",
               },
             }}
@@ -846,7 +805,7 @@ const ChatContainer = ({
             color="primary"
             size="large"
             onClick={sendMessage}
-            disabled={!inputMessage.trim() || !isAuthenticated || isTyping}
+            disabled={!inputMessage.trim() || isTyping}
             sx={{
               backgroundColor: "primary.main",
               color: "white",
@@ -866,49 +825,6 @@ const ChatContainer = ({
           </IconButton>
         </Box>
       </Paper>
-
-      {/* Authentication Modal */}
-      <Dialog open={showAuthModal} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            <QrCodeIcon sx={{ mr: 1 }} />
-            Authentication Required
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" paragraph>
-            To access your financial data, please authenticate using the QR code
-            below:
-          </Typography>
-
-          {authUrl && (
-            <Box sx={{ textAlign: "center", my: 2 }}>
-              <Button
-                variant="contained"
-                href={authUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                startIcon={<QrCodeIcon />}
-                size="large"
-              >
-                Open Authentication Page
-              </Button>
-            </Box>
-          )}
-
-          <Divider sx={{ my: 2 }} />
-
-          <Typography variant="body2" color="text.secondary">
-            After completing authentication, click "Check Status" to continue.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowAuthModal(false)}>Cancel</Button>
-          <Button onClick={handleAuthRefresh} variant="contained">
-            Check Status
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };

@@ -2030,6 +2030,428 @@ async def get_dashboard_data(session_id: str):
             }
         }
 
+@app.get("/session/{session_id}/bank-transactions")
+async def get_bank_transactions(
+    session_id: str,
+    start_date: str = None,
+    end_date: str = None,
+    account_id: str = None,
+    limit: int = 100
+):
+    """
+    Dedicated endpoint for fetching bank transactions with date range filtering
+    
+    Parameters:
+    - session_id: Fi Money session ID
+    - start_date: Start date in YYYY-MM-DD format (optional, defaults to 30 days ago)
+    - end_date: End date in YYYY-MM-DD format (optional, defaults to today)
+    - account_id: Specific account ID (optional, gets all accounts if not specified)
+    - limit: Maximum number of transactions to return (default: 100, max: 1000)
+    """
+    start_time = time.time()
+    
+    try:
+        # Validate session
+        if session_id not in sessions:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        session_data = sessions[session_id]
+        
+        # Set default date range if not provided
+        if not end_date:
+            end_date = datetime.now().strftime("%Y-%m-%d")
+        if not start_date:
+            start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+        
+        # Validate limit
+        limit = min(max(1, limit), 1000)  # Between 1 and 1000
+        
+        logger.info(f"🏦 Fetching bank transactions for session {session_id}")
+        logger.info(f"📅 Date range: {start_date} to {end_date}")
+        logger.info(f"📊 Limit: {limit} transactions")
+        
+        # Try multiple approaches to get bank transaction data
+        transaction_data = {}
+        errors = []
+        
+        # Approach 1: Direct fetch_bank_transactions call
+        try:
+            logger.info("🔄 Approach 1: Direct fetch_bank_transactions")
+            bank_result = await execute_mcp_tool(session_id, "fetch_bank_transactions")
+            
+            if bank_result and "error" not in bank_result:
+                transaction_data["direct_fetch"] = bank_result
+                logger.info("✅ Direct fetch successful")
+            else:
+                errors.append(f"Direct fetch: {bank_result.get('error', 'No data')}")
+                
+        except Exception as e:
+            errors.append(f"Direct fetch error: {str(e)}")
+            logger.error(f"❌ Direct fetch failed: {e}")
+        
+        # Approach 2: Try to get account details and extract transaction history
+        try:
+            logger.info("🔄 Approach 2: Account details with transaction history")
+            
+            # Get net worth data which contains account information
+            net_worth_result = await execute_mcp_tool(session_id, "fetch_net_worth")
+            
+            if net_worth_result and "error" not in net_worth_result:
+                # Process the account data to extract transaction information
+                processed_net_worth = process_financial_data("net_worth", net_worth_result)
+                
+                if processed_net_worth.get("data"):
+                    # Extract account details and look for transaction history
+                    net_worth_data = processed_net_worth["data"]
+                    transaction_data["from_accounts"] = extract_transactions_from_accounts(
+                        net_worth_data, start_date, end_date, account_id, limit
+                    )
+                    logger.info("✅ Account-based extraction completed")
+                    
+        except Exception as e:
+            errors.append(f"Account extraction error: {str(e)}")
+            logger.error(f"❌ Account extraction failed: {e}")
+        
+        # Approach 3: Generate sample transactions if no real data available (for demo)
+        if not transaction_data and session_data.get("demo_mode", True):
+            logger.info("🔄 Approach 3: Demo transaction data")
+            transaction_data["demo_transactions"] = generate_demo_transactions(
+                start_date, end_date, limit
+            )
+        
+        # Process and categorize the transactions
+        processed_transactions = []
+        transaction_summary = {
+            "total_transactions": 0,
+            "total_credits": 0,
+            "total_debits": 0,
+            "categories": {},
+            "date_range": {"start": start_date, "end": end_date}
+        }
+        
+        # Combine all transaction sources
+        all_transactions = []
+        
+        for source, data in transaction_data.items():
+            if isinstance(data, list):
+                all_transactions.extend(data)
+            elif isinstance(data, dict) and "transactions" in data:
+                all_transactions.extend(data["transactions"])
+            elif isinstance(data, dict) and "data" in data:
+                # Handle nested data structures
+                nested_data = data["data"]
+                if isinstance(nested_data, list):
+                    all_transactions.extend(nested_data)
+                elif isinstance(nested_data, dict) and "transactions" in nested_data:
+                    all_transactions.extend(nested_data["transactions"])
+        
+        # Process and categorize transactions
+        for txn in all_transactions[:limit]:
+            try:
+                processed_txn = categorize_and_enrich_transaction(txn)
+                processed_transactions.append(processed_txn)
+                
+                # Update summary
+                transaction_summary["total_transactions"] += 1
+                amount = processed_txn.get("amount", 0)
+                
+                if processed_txn.get("type") == "credit":
+                    transaction_summary["total_credits"] += amount
+                else:
+                    transaction_summary["total_debits"] += amount
+                
+                category = processed_txn.get("category", "Others")
+                transaction_summary["categories"][category] = transaction_summary["categories"].get(category, 0) + 1
+                
+            except Exception as e:
+                logger.error(f"❌ Error processing transaction: {e}")
+                continue
+        
+        # Sort transactions by date (newest first)
+        processed_transactions.sort(
+            key=lambda x: x.get("date", "1970-01-01"), 
+            reverse=True
+        )
+        
+        execution_time = time.time() - start_time
+        
+        return {
+            "status": "success",
+            "transactions": processed_transactions,
+            "summary": transaction_summary,
+            "metadata": {
+                "session_id": session_id,
+                "request_params": {
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "account_id": account_id,
+                    "limit": limit
+                },
+                "execution_time": execution_time,
+                "data_sources": list(transaction_data.keys()),
+                "total_found": len(processed_transactions),
+                "errors": errors if errors else None,
+                "last_updated": datetime.now().isoformat()
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Bank transactions endpoint error: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "transactions": [],
+            "summary": {
+                "total_transactions": 0,
+                "total_credits": 0,
+                "total_debits": 0,
+                "categories": {},
+                "date_range": {"start": start_date or "N/A", "end": end_date or "N/A"}
+            },
+            "metadata": {
+                "session_id": session_id,
+                "execution_time": time.time() - start_time,
+                "error_details": str(e),
+                "last_updated": datetime.now().isoformat()
+            }
+        }
+
+def extract_transactions_from_accounts(net_worth_data: dict, start_date: str, end_date: str, account_id: str, limit: int) -> dict:
+    """Extract transaction data from account details in net worth response"""
+    try:
+        transactions = []
+        
+        # Look for account details in the net worth response
+        if "accountDetailsBulkResponse" in net_worth_data:
+            account_map = net_worth_data["accountDetailsBulkResponse"].get("accountDetailsMap", {})
+            
+            for acc_id, account_info in account_map.items():
+                if account_id and acc_id != account_id:
+                    continue
+                    
+                # Extract basic account information
+                account_details = account_info.get("accountDetails", {})
+                deposit_summary = account_info.get("depositSummary", {})
+                
+                # Create a transaction entry for current balance (if available)
+                if "currentBalance" in deposit_summary:
+                    balance_info = deposit_summary["currentBalance"]
+                    if "units" in balance_info or balance_info.get("currencyCode"):
+                        balance_amount = float(balance_info.get("units", 0)) if balance_info.get("units") else 0
+                        
+                        # Create balance snapshot transaction
+                        transactions.append({
+                            "id": f"balance_{acc_id}",
+                            "account_id": acc_id,
+                            "account_number": account_details.get("maskedAccountNumber", "Unknown"),
+                            "bank_name": account_details.get("fipMeta", {}).get("displayName", "Unknown Bank"),
+                            "amount": balance_amount,
+                            "type": "balance_snapshot",
+                            "description": f"Current Balance - {account_details.get('fipMeta', {}).get('displayName', 'Bank')}",
+                            "date": deposit_summary.get("balanceDate", datetime.now().isoformat()),
+                            "category": "Balance Check",
+                            "currency": balance_info.get("currencyCode", "INR")
+                        })
+        
+        return {
+            "transactions": transactions,
+            "source": "account_details",
+            "accounts_processed": len(net_worth_data.get("accountDetailsBulkResponse", {}).get("accountDetailsMap", {}))
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error extracting transactions from accounts: {e}")
+        return {"transactions": [], "error": str(e)}
+
+def generate_demo_transactions(start_date: str, end_date: str, limit: int) -> list:
+    """Generate demo transaction data for testing when real data is unavailable"""
+    try:
+        from datetime import datetime, timedelta
+        import random
+        
+        start = datetime.strptime(start_date, "%Y-%m-%d")
+        end = datetime.strptime(end_date, "%Y-%m-%d")
+        
+        demo_transactions = []
+        
+        transaction_templates = [
+            {"desc": "Salary Credit", "amount": 85000, "type": "credit", "category": "Income"},
+            {"desc": "Rent Payment", "amount": -25000, "type": "debit", "category": "Housing & Rent"},
+            {"desc": "Grocery Shopping - BigBasket", "amount": -3500, "type": "debit", "category": "Food & Dining"},
+            {"desc": "SIP Investment - Mutual Fund", "amount": -15000, "type": "debit", "category": "Investment"},
+            {"desc": "Dividend Received", "amount": 2500, "type": "credit", "category": "Investment"},
+            {"desc": "Restaurant - Dinner", "amount": -1200, "type": "debit", "category": "Food & Dining"},
+            {"desc": "Uber Ride", "amount": -450, "type": "debit", "category": "Transportation"},
+            {"desc": "Netflix Subscription", "amount": -799, "type": "debit", "category": "Entertainment"},
+            {"desc": "Petrol - Indian Oil", "amount": -2000, "type": "debit", "category": "Transportation"},
+            {"desc": "Amazon Shopping", "amount": -5600, "type": "debit", "category": "Shopping"},
+            {"desc": "Electricity Bill", "amount": -1800, "type": "debit", "category": "Bills & Utilities"},
+            {"desc": "Mobile Recharge", "amount": -399, "type": "debit", "category": "Bills & Utilities"},
+            {"desc": "ATM Withdrawal", "amount": -5000, "type": "debit", "category": "Cash Withdrawal"},
+            {"desc": "Interest Credit", "amount": 150, "type": "credit", "category": "Bank Interest"},
+            {"desc": "Credit Card Payment", "amount": -12000, "type": "debit", "category": "Credit Card"}
+        ]
+        
+        # Generate transactions across the date range
+        days_range = (end - start).days
+        num_transactions = min(limit, max(10, days_range // 2))  # Reasonable number based on date range
+        
+        for i in range(num_transactions):
+            template = random.choice(transaction_templates)
+            
+            # Random date within range
+            random_days = random.randint(0, days_range)
+            txn_date = start + timedelta(days=random_days)
+            
+            # Add some amount variation
+            base_amount = template["amount"]
+            if base_amount > 0:
+                amount_variation = random.uniform(0.9, 1.1)  # ±10% for credits
+            else:
+                amount_variation = random.uniform(0.8, 1.2)  # ±20% for debits
+            
+            final_amount = int(base_amount * amount_variation)
+            
+            demo_transactions.append({
+                "id": f"demo_{i+1}_{int(txn_date.timestamp())}",
+                "account_id": "demo_account_001",
+                "account_number": "XXXXXXXXXXXXX0001",
+                "bank_name": "Demo Bank",
+                "amount": abs(final_amount),
+                "type": template["type"],
+                "description": template["desc"],
+                "date": txn_date.strftime("%Y-%m-%d"),
+                "category": template["category"],
+                "currency": "INR",
+                "is_demo": True
+            })
+        
+        # Sort by date (newest first)
+        demo_transactions.sort(key=lambda x: x["date"], reverse=True)
+        
+        return demo_transactions
+        
+    except Exception as e:
+        logger.error(f"❌ Error generating demo transactions: {e}")
+        return []
+
+def categorize_and_enrich_transaction(txn: dict) -> dict:
+    """Categorize and enrich transaction data with additional insights"""
+    try:
+        # Ensure required fields
+        processed_txn = {
+            "id": txn.get("id", f"txn_{int(time.time() * 1000)}"),
+            "account_id": txn.get("account_id", "unknown"),
+            "account_number": txn.get("account_number", "Unknown"),
+            "bank_name": txn.get("bank_name", "Unknown Bank"),
+            "amount": abs(float(txn.get("amount", 0))),
+            "type": txn.get("type", "debit"),
+            "description": txn.get("description", "Transaction"),
+            "date": txn.get("date", datetime.now().strftime("%Y-%m-%d")),
+            "currency": txn.get("currency", "INR"),
+            "is_demo": txn.get("is_demo", False)
+        }
+        
+        # Auto-categorize based on description if category not provided
+        if "category" not in txn or not txn["category"]:
+            processed_txn["category"] = auto_categorize_transaction(processed_txn["description"])
+        else:
+            processed_txn["category"] = txn["category"]
+        
+        # Add insights
+        processed_txn["insights"] = generate_transaction_insights(processed_txn)
+        
+        return processed_txn
+        
+    except Exception as e:
+        logger.error(f"❌ Error categorizing transaction: {e}")
+        return txn
+
+def auto_categorize_transaction(description: str) -> str:
+    """Auto-categorize transaction based on description"""
+    desc_lower = description.lower()
+    
+    # Income
+    if any(word in desc_lower for word in ["salary", "dividend", "interest", "refund", "cashback"]):
+        return "Income"
+    
+    # Food & Dining
+    elif any(word in desc_lower for word in ["restaurant", "food", "cafe", "zomato", "swiggy", "grocery", "bigbasket"]):
+        return "Food & Dining"
+    
+    # Transportation
+    elif any(word in desc_lower for word in ["uber", "ola", "petrol", "fuel", "metro", "bus", "train", "flight"]):
+        return "Transportation"
+    
+    # Bills & Utilities
+    elif any(word in desc_lower for word in ["electricity", "mobile", "recharge", "bill", "utility", "water", "gas"]):
+        return "Bills & Utilities"
+    
+    # Investment
+    elif any(word in desc_lower for word in ["sip", "investment", "mutual", "fund", "stocks", "equity"]):
+        return "Investment"
+    
+    # Housing & Rent
+    elif any(word in desc_lower for word in ["rent", "emi", "housing", "maintenance"]):
+        return "Housing & Rent"
+    
+    # Credit Card
+    elif any(word in desc_lower for word in ["credit card", "cc payment"]):
+        return "Credit Card"
+    
+    # Entertainment
+    elif any(word in desc_lower for word in ["netflix", "amazon prime", "movie", "entertainment"]):
+        return "Entertainment"
+    
+    # Shopping
+    elif any(word in desc_lower for word in ["amazon", "flipkart", "shopping", "purchase"]):
+        return "Shopping"
+    
+    # Banking
+    elif any(word in desc_lower for word in ["atm", "withdrawal", "balance", "transfer"]):
+        return "Banking"
+    
+    else:
+        return "Others"
+
+def generate_transaction_insights(txn: dict) -> dict:
+    """Generate insights for a transaction"""
+    insights = {
+        "frequency": "unknown",
+        "amount_category": "normal",
+        "timing": "regular_hours"
+    }
+    
+    try:
+        amount = txn.get("amount", 0)
+        
+        # Amount category
+        if amount >= 50000:
+            insights["amount_category"] = "high_value"
+        elif amount >= 10000:
+            insights["amount_category"] = "medium_value"
+        elif amount >= 1000:
+            insights["amount_category"] = "normal"
+        else:
+            insights["amount_category"] = "small_value"
+        
+        # Category-specific insights
+        category = txn.get("category", "Others")
+        if category == "Food & Dining" and amount > 2000:
+            insights["note"] = "High food expense"
+        elif category == "Investment" and txn.get("type") == "debit":
+            insights["note"] = "Good investment habit"
+        elif category == "Income" and amount >= 50000:
+            insights["note"] = "Major income source"
+        
+        return insights
+        
+    except Exception as e:
+        logger.error(f"❌ Error generating insights: {e}")
+        return insights
+
 def process_financial_data(data_type: str, raw_data: dict) -> dict:
     """Process raw financial data into structured format for dashboard"""
     try:
@@ -2211,16 +2633,19 @@ def build_dashboard_structure(dashboard_data: dict) -> dict:
             }
 
         # Process Bank Transaction Data for recent transactions
-        bank_data = dashboard_data.get("bank_details", {}).get("data")
-        if bank_data and not dashboard_data.get("bank_details", {}).get("error"):
+        bank_data = dashboard_data.get("bank_transactions", {}).get("data")
+        if bank_data and not dashboard_data.get("bank_transactions", {}).get("error"):
             recent_transactions = extract_recent_transactions_from_api(bank_data, limit=5)
             dashboard["recent_transactions"] = recent_transactions
+        else:
+            # If no bank transaction data, show empty array
+            dashboard["recent_transactions"] = []
 
         # Build detailed sections
         dashboard["detailed_sections"] = {
             "net_worth": dashboard_data.get("net_worth", {}),
             "credit_report": dashboard_data.get("credit_report", {}),
-            "bank_details": dashboard_data.get("bank_details", {}),
+            "bank_transactions": dashboard_data.get("bank_transactions", {}),
             "investments": dashboard_data.get("investments", {}),
             "stocks": dashboard_data.get("stocks", {}),
             "epf": dashboard_data.get("epf", {})
@@ -2244,41 +2669,61 @@ def build_dashboard_structure(dashboard_data: dict) -> dict:
         }
             
 def extract_recent_transactions_from_api(bank_data: dict, limit: int = 5) -> list:
-    """Extract recent bank transactions from the actual API structure"""
+    """Extract recent bank transactions from the actual Fi MCP API structure"""
     try:
         transactions = []
-        bank_transactions = bank_data.get("bankTransactions", [])
         
-        for bank_account in bank_transactions:
-            bank_name = bank_account.get("bank", "Unknown Bank")
-            txns = bank_account.get("txns", [])
+        # Check if bank_data contains the text content format
+        if isinstance(bank_data, str):
+            try:
+                import json
+                bank_data = json.loads(bank_data)
+            except json.JSONDecodeError:
+                logger.error("Failed to parse bank transaction JSON")
+                return []
+        
+        # Handle the structure from Fi MCP response
+        if "bankTransactions" in bank_data:
+            bank_transactions = bank_data.get("bankTransactions", [])
             
-            for txn in txns[:limit]:  # Limit per bank
-                if len(txn) >= 6:  # Ensure we have all required fields
-                    amount = float(txn[0]) if txn[0] else 0
-                    description = str(txn[1]) if txn[1] else "Unknown"
-                    date = str(txn[2]) if txn[2] else ""
-                    txn_type = int(txn[3]) if txn[3] else 1
-                    
-                    # Convert transaction type to readable format
-                    if txn_type == 1:  # CREDIT
-                        type_str = "credit"
-                    elif txn_type == 2:  # DEBIT
-                        type_str = "debit"
-                        amount = -abs(amount)  # Make debit negative
-                    else:
-                        type_str = "other"
-                    
-                    transactions.append({
-                        "date": date,
-                        "description": f"{bank_name}: {description}",
-                        "amount": amount,
-                        "type": type_str
-                    })
+            for bank_account in bank_transactions:
+                bank_name = bank_account.get("bank", "Unknown Bank")
+                txns = bank_account.get("txns", [])
+                
+                for txn in txns[:limit]:  # Limit per bank
+                    if len(txn) >= 6:  # Ensure we have all required fields
+                        amount = float(txn[0]) if txn[0] else 0
+                        description = str(txn[1]) if txn[1] else "Unknown"
+                        date = str(txn[2]) if txn[2] else ""
+                        txn_type = int(txn[3]) if txn[3] else 1
+                        balance = float(txn[4]) if txn[4] else 0
+                        
+                        # Convert transaction type to readable format
+                        if txn_type == 1:  # CREDIT
+                            type_str = "credit"
+                        elif txn_type == 2:  # DEBIT
+                            type_str = "debit"
+                            amount = -abs(amount)  # Make debit negative
+                        else:
+                            type_str = "other"
+                        
+                        transactions.append({
+                            "date": date,
+                            "description": f"{bank_name}: {description}",
+                            "amount": amount,
+                            "type": type_str,
+                            "balance": balance,
+                            "bank": bank_name,
+                            "formatted_amount": f"₹{abs(amount):,.2f}"
+                        })
         
-        # Sort by date and return limited results
-        return sorted(transactions, key=lambda x: x["date"], reverse=True)[:limit]
+        # Sort by date (newest first) and limit results
+        transactions.sort(key=lambda x: x.get("date", ""), reverse=True)
+        return transactions[:limit]
         
+    except Exception as e:
+        logger.error(f"❌ Error extracting transactions from API: {e}")
+        return []
     except Exception as e:
         logger.error(f"❌ Error extracting transactions from API: {e}")
         return []
