@@ -32,14 +32,18 @@ from functools import wraps
 GEMINI_MODEL_NAME = "gemini-2.5-flash"
 SESSION_NOT_FOUND_ERROR = "Session not found"
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Header
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field, validator
 from dotenv import load_dotenv
 import google.generativeai as genai
 from google.generativeai.types import FunctionDeclaration, Tool
+
+# Import Firebase utilities
+from firebase_utils import firebase_manager
 
 # Import tool modules
 from web_search import execute_web_search, WEB_SEARCH_TOOL_DEFINITION
@@ -200,6 +204,7 @@ class AgentWorkflow:
 # Enhanced Pydantic Models
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=5000)
+    chat_id: Optional[str] = None
     context_override: Optional[Dict[str, Any]] = None
     workflow_hint: Optional[WorkflowType] = None
     enable_parallel_tools: bool = True
@@ -231,6 +236,31 @@ class SessionMetrics(BaseModel):
     average_response_time: float
     financial_data_sources: int
     last_activity: datetime
+
+# Authentication Models
+class LoginRequest(BaseModel):
+    id_token: str = Field(..., description="Firebase ID token from Google authentication")
+
+class LoginResponse(BaseModel):
+    success: bool
+    user_id: str
+    email: str
+    name: str
+    picture: Optional[str] = None
+    chat_id: Optional[str] = None
+
+class ChatHistoryRequest(BaseModel):
+    chat_id: str
+    limit: int = Field(default=50, ge=1, le=100)
+
+class CreateChatRequest(BaseModel):
+    title: str = Field(default="New Chat", max_length=100)
+
+class SaveChatRequest(BaseModel):
+    chat_id: str
+    message_type: str = Field(..., description="'user' or 'assistant'")
+    content: str
+    metadata: Optional[Dict[str, Any]] = None
 
 # Tool Definitions from Fi MCP server - Updated based on actual server capabilities
 FI_TOOL_DEFINITIONS = [
@@ -324,6 +354,45 @@ async def lifespan(app: FastAPI):
     
     executor.shutdown(wait=True)
     logger.info("👋 Next-Gen Financial Assistant API shutting down...")
+
+# Authentication Dependencies
+security = HTTPBearer()
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Dict[str, Any]:
+    """Verify Firebase ID token and return user info"""
+    try:
+        token = credentials.credentials
+        user_info = firebase_manager.verify_token(token)
+        
+        if not user_info.get('verified'):
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid authentication token"
+            )
+        
+        return user_info
+    except Exception as e:
+        logger.error(f"Authentication failed: {e}")
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required"
+        )
+
+async def get_current_user_optional(authorization: str = Header(None)) -> Optional[Dict[str, Any]]:
+    """Optional authentication - returns user info if token is provided"""
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    
+    try:
+        token = authorization.split(" ")[1]
+        user_info = firebase_manager.verify_token(token)
+        
+        if user_info.get('verified'):
+            return user_info
+    except Exception as e:
+        logger.warning(f"Optional authentication failed: {e}")
+    
+    return None
 
 app = FastAPI(
     title="Next-Gen Financial Assistant API", 
@@ -1465,6 +1534,136 @@ async def orchestrate_agent_workflow(session_id: str, request: ChatRequest) -> C
 
 # API Endpoints
 
+# Authentication Endpoints
+@app.post("/auth/login", response_model=LoginResponse)
+async def login(request: LoginRequest):
+    """Authenticate user with Firebase ID token"""
+    try:
+        # Verify Firebase token
+        user_info = firebase_manager.verify_token(request.id_token)
+        
+        if not user_info.get('verified'):
+            raise HTTPException(status_code=401, detail="Invalid ID token")
+        
+        # Create or update user profile
+        user_id = user_info['uid']
+        firebase_manager.create_user_profile(user_id, user_info)
+        
+        # Create a new chat for the user
+        chat_id = firebase_manager.create_new_chat(user_id, "New Chat")
+        
+        return LoginResponse(
+            success=True,
+            user_id=user_id,
+            email=user_info.get('email', ''),
+            name=user_info.get('name', ''),
+            picture=user_info.get('picture'),
+            chat_id=chat_id
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Login error: {e}")
+        raise HTTPException(status_code=500, detail="Login failed")
+
+@app.post("/auth/logout")
+async def logout(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Logout user (client should clear token)"""
+    return {"success": True, "message": "Logged out successfully"}
+
+@app.get("/auth/me")
+async def get_current_user_info(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Get current user information"""
+    return {
+        "user_id": current_user['uid'],
+        "email": current_user.get('email'),
+        "name": current_user.get('name'),
+        "picture": current_user.get('picture')
+    }
+
+# Chat Management Endpoints
+@app.post("/chats/create")
+async def create_chat(
+    request: CreateChatRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """Create a new chat for the user"""
+    try:
+        chat_id = firebase_manager.create_new_chat(current_user['uid'], request.title)
+        if chat_id:
+            return {"success": True, "chat_id": chat_id}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to create chat")
+    except Exception as e:
+        logger.error(f"Create chat error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create chat")
+
+@app.get("/chats")
+async def get_user_chats(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Get all chats for the current user"""
+    try:
+        chats = firebase_manager.get_user_chats(current_user['uid'])
+        return {"chats": chats}
+    except Exception as e:
+        logger.error(f"Get chats error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve chats")
+
+@app.get("/chats/{chat_id}/messages")
+async def get_chat_history(
+    chat_id: str,
+    limit: int = 50,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """Get chat history for a specific chat"""
+    try:
+        messages = firebase_manager.get_chat_history(chat_id, current_user['uid'], limit)
+        return {"messages": messages}
+    except Exception as e:
+        logger.error(f"Get chat history error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve chat history")
+
+@app.delete("/chats/{chat_id}")
+async def delete_chat(
+    chat_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """Delete a chat and all its messages"""
+    try:
+        success = firebase_manager.delete_chat(chat_id, current_user['uid'])
+        if success:
+            return {"success": True, "message": "Chat deleted successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="Chat not found or access denied")
+    except Exception as e:
+        logger.error(f"Delete chat error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete chat")
+
+@app.post("/chats/{chat_id}/messages")
+async def save_chat_message(
+    chat_id: str,
+    request: SaveChatRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """Save a message to a chat"""
+    try:
+        message_data = {
+            "message_type": request.message_type,
+            "content": request.content,
+            "metadata": request.metadata or {}
+        }
+        
+        success = firebase_manager.save_chat_message(chat_id, current_user['uid'], message_data)
+        if success:
+            return {"success": True, "message": "Message saved successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to save message")
+    except Exception as e:
+        logger.error(f"Save message error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save message")
+
+# Session Endpoints (Updated)
+
 @app.post("/session/create")
 async def create_session():
     """Create a new enhanced session with conversation context"""
@@ -1489,16 +1688,48 @@ async def create_session():
 
 @app.post("/session/{session_id}/chat")
 @performance_monitor
-async def chat_with_agent(session_id: str, request: ChatRequest):
-    """Enhanced chat endpoint with intelligent agent orchestration"""
+async def chat_with_agent(
+    session_id: str, 
+    request: ChatRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user_optional)
+):
+    """Enhanced chat endpoint with intelligent agent orchestration and Firebase integration"""
     if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found")
     
-    # No authentication check - always allow chat
     logger.info(f"💬 Chat request from session {session_id}")
     
     try:
-        return await orchestrate_agent_workflow(session_id, request)
+        # Save user message to Firebase if user is authenticated and chat_id is provided
+        if current_user and request.chat_id:
+            user_message_data = {
+                "message_type": "user",
+                "content": request.message,
+                "metadata": {
+                    "session_id": session_id,
+                    "workflow_hint": request.workflow_hint.value if request.workflow_hint else None
+                }
+            }
+            firebase_manager.save_chat_message(request.chat_id, current_user['uid'], user_message_data)
+        
+        # Process the chat request
+        response = await orchestrate_agent_workflow(session_id, request)
+        
+        # Save assistant response to Firebase if user is authenticated and chat_id is provided
+        if current_user and request.chat_id:
+            assistant_message_data = {
+                "message_type": "assistant",
+                "content": response.response,
+                "metadata": {
+                    "session_id": session_id,
+                    "workflow_used": response.workflow_used.value,
+                    "tools_used": [tool.dict() for tool in response.tools_used],
+                    "total_duration": response.total_duration
+                }
+            }
+            firebase_manager.save_chat_message(request.chat_id, current_user['uid'], assistant_message_data)
+        
+        return response
     except Exception as e:
         logger.error(f"❌ Agent orchestration failed: {e}")
         raise HTTPException(status_code=500, detail=f"Agent error: {str(e)}")
@@ -1535,32 +1766,54 @@ async def get_enhanced_session_status(session_id: str):
 
 @app.get("/session/{session_id}/fi-mcp-status")
 async def get_fi_mcp_status(session_id: str):
-    """Get Fi MCP server status and available tools"""
+    """Get Fi MCP server status and authentication state"""
     if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found")
     
     try:
+        session_data = sessions[session_id]
+        mcp_session_id = session_data.get("mcp_session_id")
+        
+        # Check connection status
+        is_connected = mcp_session_id is not None
+        is_authenticated = False
+        
+        if is_connected:
+            # Try to perform a quick authentication check by calling a simple tool
+            try:
+                # Use a lightweight tool call to check authentication status
+                test_result = execute_mcp_tool(session_id, "fetch_net_worth")
+                is_authenticated = not is_login_required(test_result) and "error" not in test_result
+            except Exception as e:
+                logger.warning(f"Auth check failed: {e}")
+                is_authenticated = False
+        
         # Get available tools
         tools_result = list_fi_mcp_tools(session_id)
         
-        # Check connection status
-        session_data = sessions[session_id]
-        is_connected = session_data.get("mcp_session_id") is not None
-        
         return {
+            "connected": is_authenticated,  # Frontend expects this field
             "fi_mcp_server": FI_MCP_SERVER_INFO,
             "capabilities": FI_MCP_CAPABILITIES,
-            "connection_status": "connected" if is_connected else "disconnected",
+            "connection_status": "authenticated" if is_authenticated else ("connected" if is_connected else "disconnected"),
+            "mcp_session_id": mcp_session_id,
             "endpoint_url": MCP_SERVER_BASE_URL,
             "available_tools": tools_result.get("tools", []),
             "tool_definitions": FI_TOOL_DEFINITIONS,
             "session_id": session_id,
-            "is_fallback": tools_result.get("fallback", False)
+            "is_fallback": tools_result.get("fallback", False),
+            "server_info": {
+                "host": "mcp.fi.money",
+                "port": 8080,
+                "type": "production",
+                "status": "authenticated" if is_authenticated else ("connected" if is_connected else "unreachable")
+            }
         }
         
     except Exception as e:
         logger.error(f"❌ Failed to get Fi MCP status: {e}")
         return {
+            "connected": False,  # Frontend expects this field
             "fi_mcp_server": FI_MCP_SERVER_INFO,
             "connection_status": "error",
             "error": str(e),
@@ -1570,36 +1823,32 @@ async def get_fi_mcp_status(session_id: str):
 
 @app.get("/session/{session_id}/auth-url")
 async def get_auth_url(session_id: str):
-    """Get authentication URL"""
+    """Get authentication URL for Fi Money production MCP server"""
     if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found")
     
     session_data = sessions[session_id]
     mcp_session_id = session_data.get("mcp_session_id")
     
-    # Updated Fi Money authentication URL - matches Claude Desktop pattern
-    # Generate authentication token (simplified for now)
-    import time
-    import base64
-    import hmac
-    import hashlib
+    if not mcp_session_id:
+        raise HTTPException(status_code=400, detail="MCP session not initialized")
     
-    # Create a simple token for authentication
-    timestamp = int(time.time())
-    token_data = f"{mcp_session_id}|{timestamp}"
-    
-    # For now, use a simple encoding - in production this should be properly signed
-    auth_token = base64.b64encode(token_data.encode()).decode()
-    
-    # Use the correct Fi Money authentication endpoint
-    auth_url = f"https://fi.money/wealth-mcp-login?token={auth_token}"
+    # Use the production Fi Money MCP authentication URL
+    # Fi Money authentication typically uses the wealth management flow
+    auth_url = f"https://fi.money/features/wealth?mode=mcp&sessionId={mcp_session_id}"
     
     return {
         "session_id": session_id,
-        "auth_url": auth_url,
+        "fi_auth_url": auth_url,  # Changed from auth_url to fi_auth_url to match frontend
         "mcp_session_id": mcp_session_id,
-        "instructions": "Click this link to authenticate with Fi Money. After logging in, return to continue using your financial dashboard.",
-        "auth_type": "fi_money_wealth"
+        "instructions": "Complete the authentication process with Fi Money to access your financial data.",
+        "server_info": {
+            "name": "Fi Money Production MCP",
+            "host": "fi.money",
+            "endpoint": "/features/wealth",
+            "type": "production",
+            "mode": "mcp"
+        }
     }
 
 @app.get("/session/{session_id}/conversation-context")

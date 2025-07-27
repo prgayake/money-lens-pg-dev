@@ -115,7 +115,7 @@ const getChangeIndicator = (value) => {
   const isPositive = value > 0;
   return (
     <div className={`flex items-center text-sm ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
-      {isPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+      {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
       {Math.abs(value).toFixed(1)}%
     </div>
   );
@@ -123,35 +123,35 @@ const getChangeIndicator = (value) => {
 
 const getCategoryIcon = (category) => {
   const iconMap = {
-    'mutual_funds': <PieChart className="h-4 w-4 text-emerald-600" />,
-    'stocks': <TrendingUp className="h-4 w-4 text-blue-600" />,
-    'bank_accounts': <Landmark className="h-4 w-4 text-slate-600" />,
-    'real_estate': <Home className="h-4 w-4 text-amber-600" />,
-    'vehicles': <Car className="h-4 w-4 text-gray-600" />,
-    'epf': <Briefcase className="h-4 w-4 text-purple-600" />,
-    'credit_cards': <CreditCard className="h-4 w-4 text-red-600" />,
-    'loans': <Building className="h-4 w-4 text-orange-600" />,
-    'insurance': <Shield className="h-4 w-4 text-indigo-600" />,
-    'cash': <Wallet className="h-4 w-4 text-green-600" />,
-    'Food': <DollarSign className="h-4 w-4 text-green-600" />,
-    'Transportation': <Car className="h-4 w-4 text-blue-600" />,
-    'Shopping': <Building className="h-4 w-4 text-purple-600" />,
-    'Entertainment': <Target className="h-4 w-4 text-pink-600" />,
-    'Bills': <CreditCard className="h-4 w-4 text-red-600" />,
-    'Income': <ArrowUpRight className="h-4 w-4 text-emerald-600" />,
-    'Finance': <Landmark className="h-4 w-4 text-blue-700" />,
-    'Healthcare': <Shield className="h-4 w-4 text-red-500" />,
-    'Education': <Briefcase className="h-4 w-4 text-indigo-600" />,
-    'General': <DollarSign className="h-4 w-4 text-gray-600" />
+    'mutual_funds': <PieChart className="w-4 h-4 text-emerald-600" />,
+    'stocks': <TrendingUp className="w-4 h-4 text-blue-600" />,
+    'bank_accounts': <Landmark className="w-4 h-4 text-slate-600" />,
+    'real_estate': <Home className="w-4 h-4 text-amber-600" />,
+    'vehicles': <Car className="w-4 h-4 text-gray-600" />,
+    'epf': <Briefcase className="w-4 h-4 text-purple-600" />,
+    'credit_cards': <CreditCard className="w-4 h-4 text-red-600" />,
+    'loans': <Building className="w-4 h-4 text-orange-600" />,
+    'insurance': <Shield className="w-4 h-4 text-indigo-600" />,
+    'cash': <Wallet className="w-4 h-4 text-green-600" />,
+    'Food': <DollarSign className="w-4 h-4 text-green-600" />,
+    'Transportation': <Car className="w-4 h-4 text-blue-600" />,
+    'Shopping': <Building className="w-4 h-4 text-purple-600" />,
+    'Entertainment': <Target className="w-4 h-4 text-pink-600" />,
+    'Bills': <CreditCard className="w-4 h-4 text-red-600" />,
+    'Income': <ArrowUpRight className="w-4 h-4 text-emerald-600" />,
+    'Finance': <Landmark className="w-4 h-4 text-blue-700" />,
+    'Healthcare': <Shield className="w-4 h-4 text-red-500" />,
+    'Education': <Briefcase className="w-4 h-4 text-indigo-600" />,
+    'General': <DollarSign className="w-4 h-4 text-gray-600" />
   };
-  return iconMap[category] || <DollarSign className="h-4 w-4 text-gray-600" />;
+  return iconMap[category] || <DollarSign className="w-4 h-4 text-gray-600" />;
 };
 
 // Custom tooltip component
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+      <div className="p-3 bg-white border border-gray-200 rounded-lg shadow-lg dark:bg-gray-800 dark:border-gray-700">
         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{label}</p>
         {payload.map((entry, index) => (
           <p key={index} className="text-sm" style={{ color: entry.color }}>
@@ -168,8 +168,8 @@ const CustomTooltip = ({ active, payload, label }) => {
 const NetWorthChart = ({ data, theme }) => {
   if (!data || data.length === 0) {
     return (
-      <div className="h-48 flex items-center justify-center text-gray-500">
-        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+      <div className="flex items-center justify-center h-48 text-gray-500">
+        <Loader2 className="w-6 h-6 mr-2 animate-spin" />
         Loading net worth data...
       </div>
     );
@@ -205,8 +205,8 @@ const NetWorthChart = ({ data, theme }) => {
 const AssetAllocationChart = ({ data, theme }) => {
   if (!data || data.length === 0) {
     return (
-      <div className="h-48 flex items-center justify-center text-gray-500">
-        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+      <div className="flex items-center justify-center h-48 text-gray-500">
+        <Loader2 className="w-6 h-6 mr-2 animate-spin" />
         Loading asset allocation...
       </div>
     );
@@ -238,8 +238,8 @@ const AssetAllocationChart = ({ data, theme }) => {
 const SpendingTrendsChart = ({ data, theme }) => {
   if (!data || data.length === 0) {
     return (
-      <div className="h-48 flex items-center justify-center text-gray-500">
-        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+      <div className="flex items-center justify-center h-48 text-gray-500">
+        <Loader2 className="w-6 h-6 mr-2 animate-spin" />
         Loading spending trends...
       </div>
     );
@@ -269,8 +269,8 @@ const SpendingTrendsChart = ({ data, theme }) => {
 const PortfolioPerformanceChart = ({ data, theme }) => {
   if (!data || data.length === 0) {
     return (
-      <div className="h-48 flex items-center justify-center text-gray-500">
-        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+      <div className="flex items-center justify-center h-48 text-gray-500">
+        <Loader2 className="w-6 h-6 mr-2 animate-spin" />
         Loading portfolio performance...
       </div>
     );
@@ -309,8 +309,8 @@ const PortfolioPerformanceChart = ({ data, theme }) => {
 const CreditScoreGauge = ({ score, theme }) => {
   if (!score) {
     return (
-      <div className="h-48 flex items-center justify-center text-gray-500">
-        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+      <div className="flex items-center justify-center h-48 text-gray-500">
+        <Loader2 className="w-6 h-6 mr-2 animate-spin" />
         Loading credit score...
       </div>
     );
@@ -809,32 +809,32 @@ const FinancialDashboard = ({ sessionId }) => {
 
   if (loading && !dashboardData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <div className="max-w-md p-8 mx-auto text-center">
           <div className="relative mb-8">
-            <div className="w-20 h-20 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-2xl shadow-emerald-500/25">
-              <DollarSign className="h-10 w-10 text-white" />
+            <div className="flex items-center justify-center w-20 h-20 mx-auto shadow-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-2xl shadow-emerald-500/25">
+              <DollarSign className="w-10 h-10 text-white" />
             </div>
             <div className="absolute -inset-2 bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-2xl blur opacity-20 animate-pulse"></div>
           </div>
           <div className="space-y-4">
-            <div className="flex items-center justify-center space-x-2 mb-4">
-              <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+            <div className="flex items-center justify-center mb-4 space-x-2">
+              <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
               <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce delay-0"></div>
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce delay-100"></div>
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce delay-200"></div>
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce delay-0"></div>
+                <div className="w-2 h-2 delay-100 rounded-full bg-emerald-500 animate-bounce"></div>
+                <div className="w-2 h-2 delay-200 rounded-full bg-emerald-500 animate-bounce"></div>
               </div>
             </div>
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+            <h2 className="text-2xl font-bold text-transparent bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text">
               Loading Your Financial Dashboard
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+            <p className="leading-relaxed text-gray-600 dark:text-gray-400">
               Fetching your latest financial data and insights...
             </p>
             <div className="mt-6 space-y-2">
-              <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full animate-pulse" style={{width: '60%'}}></div>
+              <div className="h-2 overflow-hidden bg-gray-200 rounded-full dark:bg-gray-700">
+                <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 animate-pulse" style={{width: '60%'}}></div>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400">Analyzing your portfolio...</p>
             </div>
@@ -847,26 +847,26 @@ const FinancialDashboard = ({ sessionId }) => {
   const data = dashboardData || getMockDashboardData();
 
   return (
-    <div className="h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-all duration-300 flex flex-col">
+    <div className="flex flex-col h-screen transition-all duration-300 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Enhanced Header with Gradient */}
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg border-b border-gray-200/60 dark:border-gray-700/60 flex-shrink-0 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
+      {/* <div className="flex-shrink-0 border-b shadow-sm bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg border-gray-200/60 dark:border-gray-700/60">
+        <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20">
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <DollarSign className="h-6 w-6 text-white" />
+                <div className="flex items-center justify-center w-10 h-10 shadow-lg bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl">
+                  <DollarSign className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                  <h1 className="text-2xl font-bold text-transparent bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text">
                     Money-Lens
                   </h1>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 -mt-1">Financial Intelligence</p>
+                  <p className="-mt-1 text-sm text-gray-500 dark:text-gray-400">Financial Intelligence</p>
                 </div>
               </div>
               {lastUpdated && (
                 <Badge variant="outline" className="text-xs bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700">
-                  <CheckCircle className="h-3 w-3 mr-1" />
+                  <CheckCircle className="w-3 h-3 mr-1" />
                   Updated: {lastUpdated}
                 </Badge>
               )}
@@ -874,7 +874,7 @@ const FinancialDashboard = ({ sessionId }) => {
             
             <div className="flex items-center space-x-3">
               <Select value={selectedTimeRange} onValueChange={setSelectedTimeRange}>
-                <SelectTrigger className="w-28 h-10 bg-white/50 dark:bg-gray-700/50 backdrop-blur border-gray-200 dark:border-gray-600 hover:bg-white/80 dark:hover:bg-gray-700/80 transition-all">
+                <SelectTrigger className="h-10 transition-all border-gray-200 w-28 bg-white/50 dark:bg-gray-700/50 backdrop-blur dark:border-gray-600 hover:bg-white/80 dark:hover:bg-gray-700/80">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg">
@@ -891,7 +891,7 @@ const FinancialDashboard = ({ sessionId }) => {
                 size="sm" 
                 onClick={handleRefresh}
                 disabled={loading}
-                className="h-10 px-4 bg-white/50 dark:bg-gray-700/50 backdrop-blur border-gray-200 dark:border-gray-600 hover:bg-white/80 dark:hover:bg-gray-700/80 hover:scale-105 transition-all duration-200 shadow-sm"
+                className="h-10 px-4 transition-all duration-200 border-gray-200 shadow-sm bg-white/50 dark:bg-gray-700/50 backdrop-blur dark:border-gray-600 hover:bg-white/80 dark:hover:bg-gray-700/80 hover:scale-105"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">Refresh</span>
@@ -901,24 +901,24 @@ const FinancialDashboard = ({ sessionId }) => {
                 variant="outline"
                 size="sm"
                 onClick={toggleTheme}
-                className="h-10 w-10 p-0 bg-white/50 dark:bg-gray-700/50 backdrop-blur border-gray-200 dark:border-gray-600 hover:bg-white/80 dark:hover:bg-gray-700/80 hover:scale-105 transition-all duration-200 shadow-sm"
+                className="w-10 h-10 p-0 transition-all duration-200 border-gray-200 shadow-sm bg-white/50 dark:bg-gray-700/50 backdrop-blur dark:border-gray-600 hover:bg-white/80 dark:hover:bg-gray-700/80 hover:scale-105"
               >
-                {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
               </Button>
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {error && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 flex-shrink-0">
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200/60 dark:border-amber-800/60 rounded-xl p-4 shadow-sm backdrop-blur-sm">
+        <div className="flex-shrink-0 px-4 pt-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
+          <div className="p-4 border shadow-sm bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200/60 dark:border-amber-800/60 rounded-xl backdrop-blur-sm">
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0">
                 <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
               </div>
               <div className="flex-1">
-                <h3 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-1">
+                <h3 className="mb-1 text-sm font-medium text-amber-800 dark:text-amber-200">
                   Demo Mode Active
                 </h3>
                 <p className="text-sm text-amber-700 dark:text-amber-300">
@@ -932,52 +932,52 @@ const FinancialDashboard = ({ sessionId }) => {
 
       {/* Enhanced Scrollable Main Content */}
       <div className="flex-1 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full">
-          <Tabs defaultValue="overview" className="h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-4 mb-8 flex-shrink-0 bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-gray-200/60 dark:border-gray-700/60 p-1 rounded-xl shadow-sm">
+        <div className="h-full px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
+          <Tabs defaultValue="overview" className="flex flex-col h-full">
+            <TabsList className="grid flex-shrink-0 w-full grid-cols-4 p-1 mb-8 border shadow-sm bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border-gray-200/60 dark:border-gray-700/60 rounded-xl">
               <TabsTrigger 
                 value="overview" 
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-emerald-500/25 transition-all duration-200 rounded-lg font-medium"
               >
-                <PieChart className="h-4 w-4 mr-2" />
+                <PieChart className="w-4 h-4 mr-2" />
                 Overview
               </TabsTrigger>
               <TabsTrigger 
                 value="investments" 
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/25 transition-all duration-200 rounded-lg font-medium"
               >
-                <TrendingUp className="h-4 w-4 mr-2" />
+                <TrendingUp className="w-4 h-4 mr-2" />
                 Investments
               </TabsTrigger>
               <TabsTrigger 
                 value="spending" 
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/25 transition-all duration-200 rounded-lg font-medium"
               >
-                <CreditCard className="h-4 w-4 mr-2" />
+                <CreditCard className="w-4 h-4 mr-2" />
                 Spending
               </TabsTrigger>
               <TabsTrigger 
                 value="goals" 
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 transition-all duration-200 rounded-lg font-medium"
               >
-                <Target className="h-4 w-4 mr-2" />
+                <Target className="w-4 h-4 mr-2" />
                 Goals
               </TabsTrigger>
             </TabsList>
 
               {/* Enhanced Overview Tab */}
-              <TabsContent value="overview" className="flex-1 overflow-y-auto space-y-8 pb-8">
+              <TabsContent value="overview" className="flex-1 pb-8 space-y-8 overflow-y-auto">
                 {/* Modern Quick Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
                   {/* Net Worth Card */}
-                  <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 border-emerald-200/60 dark:border-emerald-700/40 hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-300 group hover:-translate-y-1">
+                  <Card className="transition-all duration-300 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 border-emerald-200/60 dark:border-emerald-700/40 hover:shadow-xl hover:shadow-emerald-500/10 group hover:-translate-y-1">
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
-                        <CardDescription className="text-emerald-700 dark:text-emerald-300 font-medium">
+                        <CardDescription className="font-medium text-emerald-700 dark:text-emerald-300">
                           Net Worth
                         </CardDescription>
-                        <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-emerald-500/25 transition-all duration-300 group-hover:scale-110">
-                          <DollarSign className="h-5 w-5 text-white" />
+                        <div className="flex items-center justify-center w-10 h-10 transition-all duration-300 rounded-lg shadow-lg bg-gradient-to-r from-emerald-500 to-emerald-600 group-hover:shadow-emerald-500/25 group-hover:scale-110">
+                          <DollarSign className="w-5 h-5 text-white" />
                         </div>
                       </div>
                     </CardHeader>
@@ -992,14 +992,14 @@ const FinancialDashboard = ({ sessionId }) => {
                   </Card>
 
                   {/* Total Assets Card */}
-                  <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 border-blue-200/60 dark:border-blue-700/40 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 group hover:-translate-y-1">
+                  <Card className="transition-all duration-300 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 border-blue-200/60 dark:border-blue-700/40 hover:shadow-xl hover:shadow-blue-500/10 group hover:-translate-y-1">
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
-                        <CardDescription className="text-blue-700 dark:text-blue-300 font-medium">
+                        <CardDescription className="font-medium text-blue-700 dark:text-blue-300">
                           Total Assets
                         </CardDescription>
-                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-blue-500/25 transition-all duration-300 group-hover:scale-110">
-                          <TrendingUp className="h-5 w-5 text-white" />
+                        <div className="flex items-center justify-center w-10 h-10 transition-all duration-300 rounded-lg shadow-lg bg-gradient-to-r from-blue-500 to-blue-600 group-hover:shadow-blue-500/25 group-hover:scale-110">
+                          <TrendingUp className="w-5 h-5 text-white" />
                         </div>
                       </div>
                     </CardHeader>
@@ -1016,14 +1016,14 @@ const FinancialDashboard = ({ sessionId }) => {
                   </Card>
 
                   {/* Monthly Spending Card */}
-                  <Card className="bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-800/10 border-purple-200/60 dark:border-purple-700/40 hover:shadow-xl hover:shadow-purple-500/10 transition-all duration-300 group hover:-translate-y-1">
+                  <Card className="transition-all duration-300 bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-800/10 border-purple-200/60 dark:border-purple-700/40 hover:shadow-xl hover:shadow-purple-500/10 group hover:-translate-y-1">
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
-                        <CardDescription className="text-purple-700 dark:text-purple-300 font-medium">
+                        <CardDescription className="font-medium text-purple-700 dark:text-purple-300">
                           Monthly Spending
                         </CardDescription>
-                        <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-purple-500/25 transition-all duration-300 group-hover:scale-110">
-                          <CreditCard className="h-5 w-5 text-white" />
+                        <div className="flex items-center justify-center w-10 h-10 transition-all duration-300 rounded-lg shadow-lg bg-gradient-to-r from-purple-500 to-purple-600 group-hover:shadow-purple-500/25 group-hover:scale-110">
+                          <CreditCard className="w-5 h-5 text-white" />
                         </div>
                       </div>
                     </CardHeader>
@@ -1040,14 +1040,14 @@ const FinancialDashboard = ({ sessionId }) => {
                   </Card>
 
                   {/* Credit Score Card */}
-                  <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-900/20 dark:to-indigo-800/10 border-indigo-200/60 dark:border-indigo-700/40 hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300 group hover:-translate-y-1">
+                  <Card className="transition-all duration-300 bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-900/20 dark:to-indigo-800/10 border-indigo-200/60 dark:border-indigo-700/40 hover:shadow-xl hover:shadow-indigo-500/10 group hover:-translate-y-1">
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
-                        <CardDescription className="text-indigo-700 dark:text-indigo-300 font-medium">
+                        <CardDescription className="font-medium text-indigo-700 dark:text-indigo-300">
                           Credit Score
                         </CardDescription>
-                        <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-indigo-500/25 transition-all duration-300 group-hover:scale-110">
-                          <Shield className="h-5 w-5 text-white" />
+                        <div className="flex items-center justify-center w-10 h-10 transition-all duration-300 rounded-lg shadow-lg bg-gradient-to-r from-indigo-500 to-indigo-600 group-hover:shadow-indigo-500/25 group-hover:scale-110">
+                          <Shield className="w-5 h-5 text-white" />
                         </div>
                       </div>
                     </CardHeader>
@@ -1065,12 +1065,12 @@ const FinancialDashboard = ({ sessionId }) => {
                 </div>
 
                 {/* Enhanced Charts Row */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <Card className="bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-800/50 backdrop-blur-sm border-gray-200/60 dark:border-gray-700/60 shadow-xl hover:shadow-2xl transition-all duration-300">
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+                  <Card className="transition-all duration-300 shadow-xl bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-800/50 backdrop-blur-sm border-gray-200/60 dark:border-gray-700/60 hover:shadow-2xl">
                     <CardHeader className="pb-4">
                       <CardTitle className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                          <TrendingUp className="h-4 w-4 text-white" />
+                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600">
+                          <TrendingUp className="w-4 h-4 text-white" />
                         </div>
                         <span className="text-lg font-semibold">Net Worth Trend</span>
                       </CardTitle>
@@ -1083,11 +1083,11 @@ const FinancialDashboard = ({ sessionId }) => {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-800/50 backdrop-blur-sm border-gray-200/60 dark:border-gray-700/60 shadow-xl hover:shadow-2xl transition-all duration-300">
+                  <Card className="transition-all duration-300 shadow-xl bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-800/50 backdrop-blur-sm border-gray-200/60 dark:border-gray-700/60 hover:shadow-2xl">
                     <CardHeader className="pb-4">
                       <CardTitle className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                          <PieChart className="h-4 w-4 text-white" />
+                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600">
+                          <PieChart className="w-4 h-4 text-white" />
                         </div>
                         <span className="text-lg font-semibold">Asset Allocation</span>
                       </CardTitle>
@@ -1102,35 +1102,35 @@ const FinancialDashboard = ({ sessionId }) => {
                 </div>
 
                 {/* Enhanced Asset Details */}
-                <Card className="bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-800/50 backdrop-blur-sm border-gray-200/60 dark:border-gray-700/60 shadow-xl">
+                <Card className="shadow-xl bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-800/50 backdrop-blur-sm border-gray-200/60 dark:border-gray-700/60">
                   <CardHeader className="pb-6">
                     <div className="flex items-center justify-between">
                       <div>
                         <CardTitle className="flex items-center space-x-3 text-xl">
-                          <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                            <Briefcase className="h-4 w-4 text-white" />
+                          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600">
+                            <Briefcase className="w-4 h-4 text-white" />
                           </div>
                           <span>Asset Portfolio</span>
                         </CardTitle>
                         <CardDescription className="mt-2">Your assets and their performance metrics</CardDescription>
                       </div>
-                      <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700">
+                      <Badge variant="outline" className="text-purple-700 border-purple-200 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700">
                         {data.assets?.length || 0} Assets
                       </Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                    <div className="space-y-4 overflow-y-auto max-h-96">
                       {data.assets?.map((asset, index) => (
-                        <div key={index} className="group p-4 border border-gray-200/60 dark:border-gray-700/60 rounded-xl hover:bg-gradient-to-r hover:from-gray-50 hover:to-white dark:hover:from-gray-700/50 dark:hover:to-gray-800/50 transition-all duration-200 hover:shadow-md">
+                        <div key={index} className="p-4 transition-all duration-200 border group border-gray-200/60 dark:border-gray-700/60 rounded-xl hover:bg-gradient-to-r hover:from-gray-50 hover:to-white dark:hover:from-gray-700/50 dark:hover:to-gray-800/50 hover:shadow-md">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-4">
-                              <div className="flex-shrink-0 p-2 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-lg group-hover:scale-110 transition-transform duration-200">
+                              <div className="flex-shrink-0 p-2 transition-transform duration-200 rounded-lg bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 group-hover:scale-110">
                                 {getCategoryIcon(asset.category)}
                               </div>
                               <div>
                                 <div className="font-medium text-gray-900 dark:text-gray-100">{asset.name}</div>
-                                <div className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                                <div className="text-sm text-gray-500 capitalize dark:text-gray-400">
                                   {asset.category?.replace('_', ' ')}
                                 </div>
                               </div>
@@ -1150,11 +1150,11 @@ const FinancialDashboard = ({ sessionId }) => {
 
                 {/* Enhanced User Behavior Analysis */}
                 {data.userBehavior && (
-                  <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-900/20 dark:to-indigo-800/10 border-indigo-200/60 dark:border-indigo-700/40 shadow-xl">
+                  <Card className="shadow-xl bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-900/20 dark:to-indigo-800/10 border-indigo-200/60 dark:border-indigo-700/40">
                     <CardHeader className="pb-6">
                       <CardTitle className="flex items-center space-x-3 text-xl">
-                        <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                          <Target className="h-4 w-4 text-white" />
+                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-600">
+                          <Target className="w-4 h-4 text-white" />
                         </div>
                         <span>Spending Behavior Analysis</span>
                       </CardTitle>
@@ -1169,27 +1169,27 @@ const FinancialDashboard = ({ sessionId }) => {
                             <h3 className="text-lg font-semibold text-indigo-900 dark:text-indigo-100">
                               {data.userBehavior.category}
                             </h3>
-                            <p className="text-sm text-indigo-600 dark:text-indigo-400 mt-1">
+                            <p className="mt-1 text-sm text-indigo-600 dark:text-indigo-400">
                               {data.userBehavior.description}
                             </p>
                           </div>
                           <div className="text-center">
-                            <div className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-indigo-800 bg-clip-text text-transparent">
+                            <div className="text-3xl font-bold text-transparent bg-gradient-to-r from-indigo-600 to-indigo-800 bg-clip-text">
                               {data.userBehavior.score}
                             </div>
-                            <div className="text-xs text-indigo-500 dark:text-indigo-400 font-medium">Score</div>
+                            <div className="text-xs font-medium text-indigo-500 dark:text-indigo-400">Score</div>
                           </div>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                           <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-xl">
-                            <h4 className="font-semibold text-indigo-900 dark:text-indigo-100 mb-3 flex items-center">
-                              <CheckCircle className="h-4 w-4 mr-2 text-emerald-500" />
+                            <h4 className="flex items-center mb-3 font-semibold text-indigo-900 dark:text-indigo-100">
+                              <CheckCircle className="w-4 h-4 mr-2 text-emerald-500" />
                               Key Insights
                             </h4>
-                            <ul className="space-y-2 max-h-32 overflow-y-auto">
+                            <ul className="space-y-2 overflow-y-auto max-h-32">
                               {data.userBehavior.insights?.map((insight, index) => (
-                                <li key={index} className="text-sm text-gray-700 dark:text-gray-300 flex items-start space-x-2">
+                                <li key={index} className="flex items-start space-x-2 text-sm text-gray-700 dark:text-gray-300">
                                   <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-2 flex-shrink-0"></div>
                                   <span>{insight}</span>
                                 </li>
@@ -1198,13 +1198,13 @@ const FinancialDashboard = ({ sessionId }) => {
                           </div>
                           
                           <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-xl">
-                            <h4 className="font-semibold text-indigo-900 dark:text-indigo-100 mb-3 flex items-center">
-                              <Target className="h-4 w-4 mr-2 text-blue-500" />
+                            <h4 className="flex items-center mb-3 font-semibold text-indigo-900 dark:text-indigo-100">
+                              <Target className="w-4 h-4 mr-2 text-blue-500" />
                               Recommendations
                             </h4>
-                            <ul className="space-y-2 max-h-32 overflow-y-auto">
+                            <ul className="space-y-2 overflow-y-auto max-h-32">
                               {data.userBehavior.recommendations?.map((rec, index) => (
-                                <li key={index} className="text-sm text-gray-700 dark:text-gray-300 flex items-start space-x-2">
+                                <li key={index} className="flex items-start space-x-2 text-sm text-gray-700 dark:text-gray-300">
                                   <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
                                   <span>{rec}</span>
                                 </li>
@@ -1219,8 +1219,8 @@ const FinancialDashboard = ({ sessionId }) => {
               </TabsContent>
 
               {/* Investments Tab */}
-              <TabsContent value="investments" className="flex-1 overflow-y-auto space-y-6 pb-8">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <TabsContent value="investments" className="flex-1 pb-8 space-y-6 overflow-y-auto">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                   <Card>
                     <CardHeader>
                       <CardTitle>Portfolio Performance</CardTitle>
@@ -1244,8 +1244,8 @@ const FinancialDashboard = ({ sessionId }) => {
               </TabsContent>
 
               {/* Spending Tab */}
-              <TabsContent value="spending" className="flex-1 overflow-y-auto space-y-6 pb-8">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <TabsContent value="spending" className="flex-1 pb-8 space-y-6 overflow-y-auto">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                   <Card>
                     <CardHeader>
                       <CardTitle>Spending by Category</CardTitle>
@@ -1257,7 +1257,7 @@ const FinancialDashboard = ({ sessionId }) => {
                   </Card>
 
                   <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                       <div>
                         <CardTitle>Bank Transactions</CardTitle>
                         <CardDescription>Latest transactions from your bank accounts</CardDescription>
@@ -1279,7 +1279,7 @@ const FinancialDashboard = ({ sessionId }) => {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-3 max-h-80 overflow-y-auto">
+                      <div className="space-y-3 overflow-y-auto max-h-80">
                         {(() => {
                           // Filter transactions based on selected bank
                           const filteredTransactions = data.bankTransactions && data.bankTransactions.length > 0 
@@ -1290,25 +1290,25 @@ const FinancialDashboard = ({ sessionId }) => {
                             filteredTransactions.slice(0, 15).map((transaction, index) => {
                               const category = transaction.category || categorizeTransaction(transaction.description || '');
                               return (
-                                <div key={transaction.id || index} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
+                                <div key={transaction.id || index} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg dark:border-gray-700">
                                   <div className="flex items-center space-x-3">
                                     <div className={`p-2 rounded-full ${
                                       transaction.type === 'credit' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
                                     }`}>
-                                      {transaction.type === 'credit' ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                                      {transaction.type === 'credit' ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
                                     </div>
                                     <div className="flex-1">
-                                      <div className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                         {transaction.description}
                                       </div>
-                                      <div className="flex items-center space-x-2 mt-1">
+                                      <div className="flex items-center mt-1 space-x-2">
                                         <div className="flex items-center space-x-1">
                                           {getCategoryIcon(category)}
                                           <Badge variant="secondary" className="text-xs">
                                             {category}
                                           </Badge>
                                         </div>
-                                        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center space-x-1">
+                                        <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
                                           <span>{transaction.date}</span>
                                           <span>•</span>
                                           <span className="font-medium" style={{ color: CHART_COLORS.fi.primary }}>
@@ -1317,7 +1317,7 @@ const FinancialDashboard = ({ sessionId }) => {
                                         </div>
                                       </div>
                                       {transaction.balance && (
-                                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                           Balance: {formatCurrency(transaction.balance)}
                                         </div>
                                       )}
@@ -1332,8 +1332,8 @@ const FinancialDashboard = ({ sessionId }) => {
                               );
                             })
                           ) : (
-                            <div className="text-center py-8 text-gray-500">
-                              <Wallet className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <div className="py-8 text-center text-gray-500">
+                              <Wallet className="w-12 h-12 mx-auto mb-4 opacity-50" />
                               <p>No bank transactions available</p>
                               <p className="text-sm">
                                 {selectedBank !== 'all' 
@@ -1348,7 +1348,7 @@ const FinancialDashboard = ({ sessionId }) => {
                       
                       {/* Transaction Summary for Selected Bank */}
                       {data.bankTransactions && data.bankTransactions.length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
                           {(() => {
                             const filteredTransactions = selectedBank === 'all' 
                               ? data.bankTransactions 
@@ -1394,10 +1394,10 @@ const FinancialDashboard = ({ sessionId }) => {
                     <CardDescription>Categorized view of your expenses</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                    <div className="space-y-4 overflow-y-auto max-h-96">
                       {data.spending && data.spending.length > 0 ? (
                         data.spending.map((item, index) => (
-                          <div key={index} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                          <div key={index} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg dark:border-gray-700">
                             <div className="flex items-center space-x-3">
                               {getCategoryIcon(item.category)}
                               <div>
@@ -1424,8 +1424,8 @@ const FinancialDashboard = ({ sessionId }) => {
                           </div>
                         ))
                       ) : (
-                        <div className="text-center py-8 text-gray-500">
-                          <PieChart className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <div className="py-8 text-center text-gray-500">
+                          <PieChart className="w-12 h-12 mx-auto mb-4 opacity-50" />
                           <p>No spending data available</p>
                           <p className="text-sm">Make some transactions to see spending analysis</p>
                         </div>
@@ -1436,7 +1436,7 @@ const FinancialDashboard = ({ sessionId }) => {
               </TabsContent>
 
               {/* Enhanced Goals Tab */}
-              <TabsContent value="goals" className="flex-1 overflow-y-auto space-y-8 pb-8">
+              <TabsContent value="goals" className="flex-1 pb-8 space-y-8 overflow-y-auto">
                 <div className="space-y-8">
                   {data.goals?.map((goal, index) => (
                     <Card key={goal.id} className={`
@@ -1449,7 +1449,7 @@ const FinancialDashboard = ({ sessionId }) => {
                       <CardHeader className="pb-4">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-2">
+                            <div className="flex items-center mb-2 space-x-3">
                               <div className={`
                                 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200
                                 ${index === 0 ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' : ''}
@@ -1457,7 +1457,7 @@ const FinancialDashboard = ({ sessionId }) => {
                                 ${index === 2 ? 'bg-gradient-to-r from-purple-500 to-purple-600' : ''}
                                 ${index >= 3 ? 'bg-gradient-to-r from-indigo-500 to-indigo-600' : ''}
                               `}>
-                                <Target className="h-5 w-5 text-white" />
+                                <Target className="w-5 h-5 text-white" />
                               </div>
                               <div>
                                 <CardTitle className={`
@@ -1491,7 +1491,7 @@ const FinancialDashboard = ({ sessionId }) => {
                             `}>
                               {((goal.current / goal.target) * 100).toFixed(0)}%
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
                               Complete
                             </div>
                           </div>
@@ -1534,7 +1534,7 @@ const FinancialDashboard = ({ sessionId }) => {
                             `}>
                               {((goal.current / goal.target) * 100).toFixed(1)}% complete
                             </span>
-                            <span className="text-gray-600 dark:text-gray-400 font-medium">
+                            <span className="font-medium text-gray-600 dark:text-gray-400">
                               {formatCurrency(goal.target - goal.current)} remaining
                             </span>
                           </div>
